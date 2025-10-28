@@ -12,8 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('schedules', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+            $table->uuid('id')->primary();
+            $table->uuid('course_id');
+            $table->string('type'); // half | runout
+            $table->timestampTz('fire_at');
+            $table->timestampTz('sent_at')->nullable();
+            $table->string('external_id')->nullable(); // for eventBridge
+            $table->timestampsTz();
+
+            $table->foreign('course_id')->references('id')->on('medication_courses')->cascadeOnDelete();
         });
     }
 
