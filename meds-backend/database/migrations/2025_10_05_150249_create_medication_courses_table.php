@@ -6,14 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('medication_courses', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('client_id');
+            $table->id(); // bigint PK
+            $table->foreignId('client_id')
+                  ->constrained('clients')  // adds FK + index
+                  ->cascadeOnDelete();
 
             $table->string('name');
             $table->string('strength')->nullable();
@@ -34,15 +33,9 @@ return new class extends Migration
 
             $table->string('status')->default('active'); // active|complete|paused
             $table->timestampsTz();
-
-            $table->foreign('client_id')->references('id')->on('clients')->cascadeOnDelete();
-
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('medication_courses');
