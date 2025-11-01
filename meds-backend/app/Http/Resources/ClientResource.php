@@ -17,6 +17,10 @@ class ClientResource extends JsonResource
                 'updated_at' => $this->updated_at?->toIso8601String(),
 
                 'courses' => CourseResource::collection($this->whenLoaded('courses')),
+                'service' => [
+                    'id'   => $this->service_id,
+                    'name' => $this->whenLoaded('service', fn () => $this->service?->name),
+                ],
             ];
         }
 }

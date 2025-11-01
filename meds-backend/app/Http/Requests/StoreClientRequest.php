@@ -8,7 +8,8 @@ class StoreClientRequest extends FormRequest {
   public function rules(){ 
     return [
       'initials'=>'required|string|max:10',
-      'dob'=>'nullable|date'
+      'dob'=>'nullable|date',
+      'service_id' => 'required|integer|exists:services,id',
     ];
   }
 }
