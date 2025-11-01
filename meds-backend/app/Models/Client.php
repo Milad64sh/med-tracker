@@ -11,4 +11,7 @@ class Client extends Model
     protected $casts = [
         'dob' => 'date',
     ];
+    
+    public function courses(){ return $this->hasMany(MedicationCourse::class); }
+
 }

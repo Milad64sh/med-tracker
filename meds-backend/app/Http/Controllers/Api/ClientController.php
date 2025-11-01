@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Client;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreClientRequest;
+use App\Http\Resources\ClientResource;
 
 class ClientController extends Controller
 {
-    public function store(Request $r) {
-        $data=$r->validate(['initials'=> 'required|string|max:10' , 'dob'=>'nullable|date']);
-        return response()->json(Client::create($data),201);
-    }
+    public function store(StoreClientRequest $req) {
+    $client = \App\Models\Client::create($req->validated());
+    return (new ClientResource($client))
+        ->response()
+        ->setStatusCode(201);
+}
 }

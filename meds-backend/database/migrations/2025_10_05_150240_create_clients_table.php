@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->id('id');
+            $table->foreignId('service_id')->constrained('services')->cascadeOnDelete();
             $table->string('initials');
             $table->date('dob')->nullable();
             $table->timestampsTz();
+            $table->unique(['service_id','initials']);
         });
     }
 
