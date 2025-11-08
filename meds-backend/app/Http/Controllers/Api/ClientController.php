@@ -17,15 +17,26 @@ class ClientController extends Controller
     }
 
     public function index()
-{
-    $clients = \App\Models\Client::with('service')->orderBy('created_at','desc')->paginate(20);
-    // If you have a ClientResource, return it as a collection:
-    return ClientResource::collection($clients);
-}
+    {
+        $clients = \App\Models\Client::with('service:id,name')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return ClientResource::collection($clients);
+    }
 
 public function show(\App\Models\Client $client)
 {
     $client->load('service','courses');
     return new ClientResource($client);
 }
+
+public function lookup()
+{
+    return \App\Models\Client::with('service:id,name')
+        ->select('id', 'initials', 'dob', 'service_id')
+        ->orderBy('initials')
+        ->get();
+}
+
 }

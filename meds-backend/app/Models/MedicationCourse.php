@@ -12,6 +12,11 @@ class MedicationCourse extends Model
         'start_date'=>'date','half_date'=>'date','runout_date'=>'date'
     ];
     public function client(){ return $this->belongsTo(Client::class); }
-    public function schedules(){ return $this->hasMany(Schedule::class); }
+
+    // app/Models/MedicationCourse.php
+    public function schedules() {
+        return $this->hasMany(Schedule::class, 'course_id');
+    }
+
 }
 
