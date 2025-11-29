@@ -8,19 +8,20 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ClientResource extends JsonResource
 {
     public function toArray(Request $request): array
-        {
-            return [
-                'id'       => $this->id,
-                'initials' => $this->initials,
-                'dob'      => optional($this->dob)->toDateString(), // 'YYYY-MM-DD'
-                'created_at' => $this->created_at?->toIso8601String(),
-                'updated_at' => $this->updated_at?->toIso8601String(),
+    {
+        return [
+            'id'         => $this->id,
+            'initials'   => $this->initials,
+            'dob'        => optional($this->dob)->toDateString(), // 'YYYY-MM-DD'
+            'gp_email'   => $this->gp_email,
 
-                'courses' => CourseResource::collection($this->whenLoaded('courses')),
-                'service' => [
-                    'id'   => $this->service_id,
-                    'name' => $this->whenLoaded('service', fn () => $this->service?->name),
-                ],
-            ];
-        }
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+            'courses'    => CourseResource::collection($this->whenLoaded('courses')),
+            'service'    => [
+                'id'   => $this->service_id,
+                'name' => $this->whenLoaded('service', fn () => $this->service?->name),
+            ],
+        ];
+    }
 }

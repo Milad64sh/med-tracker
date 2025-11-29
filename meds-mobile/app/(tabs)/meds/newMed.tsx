@@ -1,50 +1,82 @@
 import React from "react";
-import { View, Text, TextInput, Pressable, ScrollView, Alert, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { fetcher } from "@/lib/api";
+import { MedicationDateField } from "@/components/MedicationDateField";
 import { useClients } from "@/features/clients/queries";
 import { router } from "expo-router";
 import { Select } from "@/components/NewMedScreen";
 import type { Client } from "@/features/dashboard/types";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { formatUK } from "@/utils/formatUK";
 
 const schema = z.object({
   name: z.string().min(1, "Medication name required"),
   strength: z.string().optional(),
   form: z.string().optional(),
-  dose_per_admin: z.coerce.number().optional(),
-  admins_per_day: z.coerce.number().optional(),
-  daily_use: z.coerce.number().min(0),
-  pack_size: z.coerce.number(),
-  packs_on_hand: z.coerce.number(),
+  dose_per_admin: z.coerce.number().min(0.001, "Dose per admin required"),
+  admins_per_day: z.coerce.number().min(0.001, "Admins per day required"),
+  daily_use: z.coerce.number().min(0.001, "Daily use required"),
+  pack_size: z.coerce.number().min(1, "Pack size must be at least 1"),
+  packs_on_hand: z.coerce.number().min(0),
   loose_units: z.coerce.number().optional(),
-  opening_units: z.coerce.number().optional(),
+  opening_units: z.coerce.number().min(0, "Opening units required"),
   start_date: z.string().min(1, "Start date required"),
 });
 type FormData = z.infer<typeof schema>;
 
+// Helpers: API (YYYY-MM-DD) vs UK display (DD/MM/YYYY)
+const formatDateForApi = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+
+
 export default function NewMedScreen() {
   const insets = useSafeAreaInsets();
 
-  const { control, handleSubmit, reset, formState: { errors, isSubmitting } } =
-    useForm<FormData>({ resolver: zodResolver(schema) });
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      // default start date = today in API format
+      start_date: formatDateForApi(new Date()),
+    },
+  });
 
   const { data: clients = [], isLoading: loadingClients, isError, error } = useClients();
 
   const clientOptions = React.useMemo(() => {
     return clients.map((c: Client) => {
       const initials = c.initials || "(no initials)";
-      const dob = (c.dob && typeof c.dob === "string") ? c.dob.slice(0, 10) : "Unknown DOB";
+      const dob = c.dob && typeof c.dob === "string" ? c.dob.slice(0, 10) : "Unknown DOB";
+      const ukDob = formatUK(dob)
       const serviceName = c.service?.name || "No Service";
-      const label = `${initials} (${dob}, ${serviceName})`;
+      const label = `${initials} (${ukDob}, ${serviceName})`;
       return { label, value: String(c.id) };
     });
   }, [clients]);
 
   const [selectedClientId, setSelectedClientId] = React.useState<string | undefined>(undefined);
+
 
   const onSubmit = async (data: FormData) => {
     const idNum = Number(selectedClientId);
@@ -52,6 +84,7 @@ export default function NewMedScreen() {
       Alert.alert("Select Client", "Please select a client first");
       return;
     }
+
     await fetcher("/api/courses", { method: "POST", body: { ...data, client_id: idNum } });
     Alert.alert("Success", "Medication added successfully");
     reset();
@@ -62,7 +95,11 @@ export default function NewMedScreen() {
     name,
     label,
     keyboardType = "default",
-  }: { name: keyof FormData; label: string; keyboardType?: any }) => (
+  }: {
+    name: keyof FormData;
+    label: string;
+    keyboardType?: any;
+  }) => (
     <Controller
       control={control}
       name={name}
@@ -75,7 +112,6 @@ export default function NewMedScreen() {
             onChangeText={onChange}
             value={String(value ?? "")}
             keyboardType={keyboardType}
-            // Helps navigation between fields so you don't have to dismiss keyboard
             returnKeyType="next"
             blurOnSubmit={false}
           />
@@ -95,7 +131,7 @@ export default function NewMedScreen() {
         className="flex-1"
         behavior={Platform.select({ ios: "padding", android: "height" })}
         keyboardVerticalOffset={Platform.select({
-          ios: 0,           // if you have a header, put its height here
+          ios: 0,
           android: 0,
         })}
       >
@@ -147,12 +183,20 @@ export default function NewMedScreen() {
           <Input name="packs_on_hand" label="Packs on Hand" keyboardType="numeric" />
           <Input name="loose_units" label="Loose Units" keyboardType="numeric" />
           <Input name="opening_units" label="Opening Units" keyboardType="numeric" />
-          <Input name="start_date" label="Start Date (YYYY-MM-DD)" />
+          <MedicationDateField
+            control={control}
+            errors={errors}
+            name="start_date"
+            label="Start Date"
+          />
+
 
           <Pressable
             onPress={handleSubmit(onSubmit)}
             disabled={isSubmitting}
-            className={`mt-2 mb-10 py-3 rounded-xl ${isSubmitting ? "bg-neutral-300" : "bg-emerald-500"}`}
+            className={`mt-2 mb-10 py-3 rounded-xl ${
+              isSubmitting ? "bg-neutral-300" : "bg-emerald-500"
+            }`}
           >
             <Text className="text-center text-white text-lg font-semibold">
               {isSubmitting ? "Submitting..." : "Submit"}

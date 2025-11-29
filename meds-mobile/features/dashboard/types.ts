@@ -1,13 +1,11 @@
-export type Service = { id: number; name: string };
-export type ClientLite = { id: number; name: string; service: Service };
-export type AlertRow = {
-  course_id: number;
-  medication: string;
-  days_remaining: number | null;
-  runout_date: string | null;
-  half_date: string | null;
-  client: ClientLite;
-  status: 'critical' | 'low' | 'ok' | 'unknown';
+export type Service = { 
+  id: number; 
+  name: string 
+};
+export type ClientLite = { 
+  id: number; 
+  name: string; 
+  service: Service 
 };
 
 export type DashboardResponse = {
@@ -26,5 +24,30 @@ export type Client = {
   initials: string | null;
   dob?: string | null; // "YYYY-MM-DD"
   service?: { id: number; name: string } | null;
+  gp_email?: string | null;
 };
-export type Paginated<T> = { data: T[]; links?: unknown; meta?: unknown };
+export type Paginated<T> = { 
+  data: T[]; 
+  links?: unknown; 
+  meta?: unknown 
+};
+
+export type AlertRow = {
+  course_id: number;
+  medication: string | null;
+  status: 'critical' | 'low' | 'ok' | 'unknown';
+  units_remaining: number | null;
+  days_remaining?: number | null;
+  half_date: string | null;
+  runout_date: string | null;
+  client: {
+    id: number | null;
+    name: string;
+    gp_email: string | null; 
+    service: {
+      id: number | null;
+      name: string;
+    };
+  };
+};
+

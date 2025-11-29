@@ -5,7 +5,10 @@ import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+type IconMapping = Record<
+  SymbolViewProps['name'],
+  ComponentProps<typeof MaterialIcons>['name']
+>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -18,6 +21,28 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+
+  // Tabs
+  'person.2.fill': 'people',       // Clients
+  'building.2.fill': 'business',   // Services
+  'pills.fill': 'medication',      // Meds
+
+  // Expanded / collapsed
+  'chevron.down': 'expand-more',
+  'chevron.up': 'expand-less',
+
+    // Top navbar
+    'person.crop.circle': 'account-circle',         // My account
+    'gearshape': 'settings',                        // Settings
+    'rectangle.portrait.and.arrow.right': 'logout', // Sign out
+
+    // Password visibility
+  'eye': 'visibility',
+  'eye.slash': 'visibility-off',
+
+    // Password validation icons
+  "checkmark.circle.fill": "check-circle",
+  "xmark.circle.fill": "cancel",
 } as IconMapping;
 
 /**
@@ -33,9 +58,16 @@ export function IconSymbol({
 }: {
   name: IconSymbolName;
   size?: number;
-  color: string | OpaqueColorValue;
+  color?: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return (
+    <MaterialIcons
+      name={MAPPING[name]}
+      size={size}
+      color={color ?? 'black'}
+      style={style}
+    />
+  );
 }

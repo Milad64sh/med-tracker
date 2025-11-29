@@ -18,7 +18,9 @@ services:
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
-            - '.:/var/www/html'
+            - .:/var/www/html
+            - storage_data:/var/www/html/storage
+            - cache_data:/var/www/html/bootstrap/cache
         networks:
             - sail
         depends_on:
@@ -108,3 +110,8 @@ volumes:
         driver: local
     sail-pgsql:
         driver: local
+    storage_data:
+        driver: local
+    cache_data:
+        driver: local
+

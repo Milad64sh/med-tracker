@@ -1,45 +1,80 @@
-// import axios from 'axios';
+// @/lib/api.ts
 
-// http://192.168.0.177:8080
+//  192.168.0.177
+//  192.168.1.174
+
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ||
-  'http://192.168.0.177:8080';
+  (process.env.EXPO_PUBLIC_API_BASE_URL || "http://35.178.169.43").replace(/\/$/, "");
 
-  
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+type FetcherOpts = { method?: HttpMethod; body?: any; headers?: Record<string, string> };
 
-
-export async function fetcher<T>(
-  path: string,
-  opts: { method?: HttpMethod; body?: any; headers?: Record<string, string> } = {}
-): Promise<T> {
-  const url = `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
-  const res = await fetch(url, {
-    method: opts.method ?? 'GET',
-    headers: {
-      'Accept': 'application/json',
-      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(opts.headers ?? {}),
-    },
-    body: opts.body ? JSON.stringify(opts.body) : undefined,
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
-  }
-  return res.json() as Promise<T>;
+function toUrl(path: string) {
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-// export type Service = { id: number; name: string; address?: string };
-// export type Course = { id: number; name: string; strength?: string; form?: string; daily_use?: number; runout_date?: string | null; };
-// export type Client = { id: number; initials?: string; dob?: string; service?: Service | null; courses?: Course[] };
+function tryParseJson(text: string) {
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return { raw: text };
+  }
+}
 
-// export async function getClient(id: number): Promise<Client> {
-//   const { data } = await api.get(`/clients/${id}`);
-//   return data.data ?? data;
-// }
-// export async function getServices(): Promise<Service[]> {
-//   const { data } = await api.get('/services');
-//   return data.data ?? data;
-// }
+/** Unwrap `{ data: ... }` if present, else return the object as-is */
+export function unwrapData<T = any>(payload: any): T {
+  if (payload && typeof payload === "object" && "data" in payload) return payload.data as T;
+  return payload as T;
+}
+
+/**
+ * Global auth token, set from AuthContext.
+ * This is used automatically in all fetcher() calls.
+ */
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+export async function fetcher<T = any>(path: string, opts: FetcherOpts = {}): Promise<T> {
+  const url = toUrl(path);
+  let res: Response;
+
+  try {
+    res = await fetch(url, {
+      method: opts.method ?? "GET",
+      headers: {
+        Accept: "application/json",
+        ...(opts.body ? { "Content-Type": "application/json" } : {}),
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(opts.headers ?? {}),
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+  } catch (netErr: any) {
+    const msg = `Network error fetching ${url}: ${netErr?.message || netErr}`;
+    throw Object.assign(new Error(msg), { cause: netErr });
+  }
+
+  const isNoContent = res.status === 204 || res.headers.get("Content-Length") === "0";
+  const text = isNoContent ? "" : await res.text().catch(() => "");
+  const data = text ? tryParseJson(text) : null;
+
+  if (!res.ok) {
+    const msg =
+      (data && (data.message || data.error)) ||
+      (typeof data?.raw === "string" && data.raw.slice(0, 300)) ||
+      res.statusText ||
+      `HTTP ${res.status}`;
+    const err: any = new Error(`HTTP ${res.status} ${res.statusText}: ${msg}`);
+    err.status = res.status;
+    err.url = url;
+    err.details = data;
+    throw err;
+  }
+
+  if (!text) return undefined as unknown as T;
+
+  return data as T;
+}

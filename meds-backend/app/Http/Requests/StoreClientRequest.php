@@ -7,9 +7,10 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreClientRequest extends FormRequest {
   public function rules(){ 
     return [
-      'initials'=>'required|string|max:10',
-      'dob'=>'nullable|date',
+      'initials'   => 'required|string|max:10',
+      'dob'        => 'nullable|date',
       'service_id' => 'required|integer|exists:services,id',
+      'gp_email'   => 'nullable|email|max:255',
     ];
   }
 }

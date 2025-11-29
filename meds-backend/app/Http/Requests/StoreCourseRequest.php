@@ -13,7 +13,7 @@ class StoreCourseRequest extends FormRequest {
       'form'=>'nullable|string|max:50',
       'dose_per_admin'=>'required|numeric|min:0.001',
       'admins_per_day'=>'required|numeric|min:0.001',
-      'daily_use'=>'required|numeric|min:0.001',
+      'daily_use'=>'nullable|numeric|min:0.001',
       'pack_size'=>'required|integer|min:1',
       'packs_on_hand'=>'required|integer|min:0',
       'loose_units'=>'nullable|integer|min:0',
@@ -25,3 +25,4 @@ class StoreCourseRequest extends FormRequest {
     ];
   }
 }
+

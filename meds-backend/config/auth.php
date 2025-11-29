@@ -35,12 +35,26 @@ return [
     |
     */
 
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
+        'guards' => [
+
+            'web' => [
+                'driver' => 'session',
+                'provider' => 'users',
+            ],
+
+            'sanctum' => [
+                'driver' => 'sanctum',
+                'provider' => 'users',
+            ],
+
+            // You can keep or remove this 'api' guard if you're not using it
+            'api' => [
+                'driver' => 'token',
+                'provider' => 'users',
+                'hash' => false,
+            ],
         ],
-    ],
+
 
     /*
     |--------------------------------------------------------------------------
@@ -62,7 +76,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => App\Models\User::class,
         ],
 
         // 'users' => [
