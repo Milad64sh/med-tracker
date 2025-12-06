@@ -1,5 +1,6 @@
+'use client';
+
 import React from 'react';
-import { Text, Pressable } from 'react-native';
 
 type Props = {
   label: string;
@@ -17,14 +18,19 @@ const intentStyles: Record<NonNullable<Props['intent']>, string> = {
 
 export function KpiTile({ label, value, onPress, intent = 'default' }: Props) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${label} ${value}`}
-      className={`rounded-xl p-4 mr-3 min-w-[120px] ${intentStyles[intent]} active:opacity-80`}
+    <button
+      type="button"
+      onClick={onPress}
+      className={`
+        rounded-xl p-4 mr-3 min-w-[120px] text-left 
+        ${intentStyles[intent]} 
+        active:opacity-80
+        outline-none
+      `}
+      aria-label={`${label} ${value}`}
     >
-      <Text className="text-2xl font-semibold">{String(value)}</Text>
-      <Text className="text-neutral-700 mt-1">{label}</Text>
-    </Pressable>
+      <p className="text-2xl font-semibold text-neutral-900">{String(value)}</p>
+      <p className="mt-1 text-neutral-700">{label}</p>
+    </button>
   );
 }
