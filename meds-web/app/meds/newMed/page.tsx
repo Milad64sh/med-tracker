@@ -264,7 +264,7 @@ const {
           type="button"
           onClick={handleSubmit(onSubmit)}
           disabled={isSubmitting}
-          className={`mt-2 mb-8 w-full rounded-xl py-3 text-lg font-semibold text-white ${
+          className={`mt-2 mb-8 w-full rounded-xl py-3 text-lg font-semibold text-white cursor-pointer ${
             isSubmitting
               ? 'bg-neutral-300'
               : 'bg-emerald-500 hover:bg-emerald-600'

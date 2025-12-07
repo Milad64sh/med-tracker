@@ -9,7 +9,7 @@ import type { Client } from '../features/dashboard/types';
 import { MedicationCard } from '../components/meds/medicationCard';
 import { useRouter } from 'next/navigation';
 
-type CourseWithRelations = any; // you can tighten this using your MedicationCourse & Client types
+type CourseWithRelations = any; 
 
 // Small chip component for the filter
 const ClientFilterChip: React.FC<{

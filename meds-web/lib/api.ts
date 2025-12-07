@@ -6,7 +6,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_API_BASE_URL || "http://35.178.169.43").replace(/\/$/, "");
+  (process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.miladshalikarian.co.uk").replace(/\/$/, "");
+
 
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";

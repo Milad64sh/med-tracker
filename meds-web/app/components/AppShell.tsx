@@ -87,7 +87,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <Link key={item.href} href={item.href}>
                   <button
                     type="button"
-                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium ${
+                    className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium cursor-pointer ${
                       active
                         ? 'bg-neutral-900 text-white'
                         : 'text-neutral-700 hover:bg-neutral-100'
@@ -221,10 +221,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                       <Link key={item.href} href={item.href}>
                         <button
                           type="button"
-                          className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium ${
+                          className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium cursor-pointer ${
                             active
                               ? 'bg-neutral-900 text-white'
-                              : 'text-neutral-700 hover:bg-neutral-100 cursor-pointer'
+                              : 'text-neutral-700 hover:bg-neutral-100 '
                           }`}
                         >
                           {item.label}

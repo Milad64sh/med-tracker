@@ -7,13 +7,40 @@ import { formatUK } from '../utils/formatUK';
 function statusColors(status: AlertRow['status']) {
   switch (status) {
     case 'critical':
-      return 'bg-red-100 text-red-800';
+      return {
+        circleBg: 'bg-red-100',
+        textPrimary: 'text-red-800',
+        textSecondary: 'text-red-700',
+        statusPill: 'bg-red-600 text-white',
+        card: 'border-red-100 bg-red-50',
+      };
+
     case 'low':
-      return 'bg-amber-100 text-amber-800';
+      return {
+        circleBg: 'bg-amber-100',
+        textPrimary: 'text-amber-800',
+        textSecondary: 'text-amber-700',
+        statusPill: 'bg-amber-500 text-white',
+        card: 'border-amber-100 bg-amber-50',
+      };
+
     case 'ok':
-      return 'bg-emerald-100 text-emerald-800';
+      return {
+        circleBg: 'bg-emerald-100',
+        textPrimary: 'text-emerald-800',
+        textSecondary: 'text-emerald-700',
+        statusPill: 'bg-emerald-500 text-white',
+        card: 'border-emerald-100 bg-emerald-50',
+      };
+
     default:
-      return 'bg-neutral-100 text-neutral-800';
+      return {
+        circleBg: 'bg-neutral-100',
+        textPrimary: 'text-neutral-800',
+        textSecondary: 'text-neutral-600',
+        statusPill: 'bg-neutral-500 text-white',
+        card: 'border-neutral-200 bg-white',
+      };
   }
 }
 
@@ -24,12 +51,7 @@ type AlertCardProps = {
 };
 
 export function AlertCard({ item, onPress, onEmailPress }: AlertCardProps) {
-  console.log(
-    'AlertCard mounted for',
-    item.medication,
-    'has onEmailPress?',
-    !!onEmailPress
-  );
+  const theme = statusColors(item.status);
 
   const daysLabel =
     item.days_remaining == null ? '—' : `${item.days_remaining}d`;
@@ -39,9 +61,6 @@ export function AlertCard({ item, onPress, onEmailPress }: AlertCardProps) {
       ? `${item.units_remaining} tabs`
       : '—';
 
-  const badge = statusColors(item.status);
-  const [bgClass] = badge.split(' ');
-
   const handleCardClick = () => {
     if (onPress) onPress();
   };
@@ -50,36 +69,35 @@ export function AlertCard({ item, onPress, onEmailPress }: AlertCardProps) {
     <div
       onClick={handleCardClick}
       role={onPress ? 'button' : undefined}
-      className="mb-3 flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 text-neutral-900 "
+      className={`mb-3 flex items-center justify-between rounded-xl border p-4 text-neutral-900 ${theme.card}`}
       aria-label={`View ${item.medication} for ${item.client.name}, ${item.status}`}
     >
       {/* Left side */}
       <div className="flex items-center">
         {/* Left circle */}
         <div
-          className={`mr-3 flex h-12 w-12 items-center justify-center rounded-full ${bgClass}`}
+          className={`mr-3 flex h-12 w-12 items-center justify-center rounded-full ${theme.circleBg}`}
         >
           <span className="text-base">{daysLabel}</span>
         </div>
 
-        {/* Middle */}
+        {/* Middle text */}
         <div className="max-w-[70%]">
-          <p className="truncate font-semibold">
+          <p className={`truncate font-semibold ${theme.textPrimary}`}>
             {item.medication}
           </p>
 
-          <p className="truncate text-neutral-700">
+          <p className={`truncate ${theme.textSecondary}`}>
             {item.client.name} · {item.client.service?.name}
           </p>
 
-          <p className="mt-1 truncate text-neutral-500">
+          <p className="mt-1 truncate text-neutral-600">
             Runout {formatUK(item.runout_date) ?? '—'} · Half{' '}
             {formatUK(item.half_date) ?? '—'}
           </p>
 
-          <p className="mt-0.5 truncate text-neutral-500">
-            Remaining:{' '}
-            <span className="font-semibold">{unitsLabel}</span>
+          <p className="mt-0.5 truncate text-neutral-600">
+            Remaining: <span className="font-semibold">{unitsLabel}</span>
           </p>
         </div>
       </div>
@@ -87,21 +105,15 @@ export function AlertCard({ item, onPress, onEmailPress }: AlertCardProps) {
       {/* Right side */}
       <div className="right-1 flex flex-col items-end">
         {/* Status pill */}
-        <div className={`mb-2 rounded-full px-3 py-2 ${badge}`}>
-          <span className="text-xs">
-            {item.status.toUpperCase()}
-          </span>
+        <div className={`mb-2 rounded-full px-3 py-2 text-xs ${theme.statusPill}`}>
+          {item.status.toUpperCase()}
         </div>
 
-        {/* Email button for LOW + CRITICAL */}
+        {/* Email GP button */}
         {(item.status === 'critical' || item.status === 'low') && (
           <button
             type="button"
             onClick={(event) => {
-              console.log(
-                'AlertCard: Email GP button pressed for',
-                item.medication
-              );
               event.stopPropagation();
               onEmailPress?.(item);
             }}
