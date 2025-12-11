@@ -3,16 +3,22 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { fetcher } from '@/lib/api';
+import { useAlert } from '@/app/AlertProvider';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const {showAlert} = useAlert();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!email.trim()) {
-      window.alert('Missing email');
+      showAlert({
+        title: 'Email required',
+        message: 'Please enter an email address to continue.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -23,12 +29,22 @@ export default function ForgotPasswordPage() {
         body: { email: email.trim() },
       });
 
-      window.alert(
-        'If that address is registered, a reset link has been sent.'
-      );
+      showAlert({
+        title: 'Reset Link Sent',
+        message: 'If an account with that email exists, a password reset link has been sent.',
+        variant: 'info',
+      });
+
     } catch (e: any) {
-      console.log('Forgot password error', e?.message || e);
-      window.alert('Unable to send reset link.');
+
+      const message =
+        e?.details?.message ||
+        'Forgot password error.';
+      showAlert({
+        title: 'Failed to send link',
+        message: message,
+        variant: 'error',
+      });
     } finally {
       setSubmitting(false);
     }

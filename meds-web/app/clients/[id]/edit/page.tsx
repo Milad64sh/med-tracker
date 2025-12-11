@@ -13,6 +13,7 @@ import { fetcher } from '@/lib/api';
 import { DobField } from '@/app/components/forms/DobField';
 import { InputField } from '@/app/components/forms/InputField';
 import { BackButton } from '../../../components/ui/BackButton';
+import { useAlert } from '@/app/AlertProvider';
 
 // ---- Schema ----
 const schema = z.object({
@@ -49,6 +50,7 @@ export default function EditClientPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { showAlert } = useAlert();
 
   const {
     control,
@@ -103,12 +105,16 @@ export default function EditClientPage() {
           gp_email: res.data?.gp_email ?? '',
         });
       } catch (e: any) {
-        window.alert(e?.message || 'Failed to load client');
+        showAlert({
+          title: 'Update failed',
+          message: e?.message || 'Failed to load client. Please try again.',
+          variant: 'error',
+        });
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, reset]);
+  }, [id, reset, showAlert]);
 
   const onSubmit = async (form: FormData) => {
     try {
@@ -127,10 +133,20 @@ export default function EditClientPage() {
       // refresh clients list
       queryClient.invalidateQueries({ queryKey: ['clients'] });
 
-      window.alert('Client updated successfully');
-      router.back();
+        showAlert({
+        title: 'Client updated',
+        message: 'Client details have been updated successfully.',
+        variant: 'success',
+        onOk: () => {
+          router.back();
+        },
+      });
     } catch (e: any) {
-      window.alert(e?.message || 'Failed to update client');
+      showAlert({
+      title: 'Update failed',
+      message: e?.message || 'Failed to update client. Please try again.',
+      variant: 'error',
+    });
     }
   };
 

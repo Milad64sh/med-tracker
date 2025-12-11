@@ -8,25 +8,61 @@ import { KpiTile } from '@/app/components/KpiTile';
 import { StatusChips } from '@/app/components/StatusChips';
 import { AddChips } from '@/app/components/AddChips';
 import { AlertCard } from '@/app/components/AlertCard';
-import type { AlertRow } from '@/app/features/dashboard/types';
+import type { AlertRow, ClientAlertGroup } from '@/app/features/dashboard/types';
 import { AppShell } from '@/app/components/AppShell';
 import { fetcher } from '@/lib/api';
 
 type StatusFilter = 'all' | 'critical' | 'low' | 'ok';
 
+/**
+ * Group alerts by client so we show one card per client
+ * (each card can contain multiple medications).
+ */
+function groupAlertsByClient(alerts: AlertRow[]): ClientAlertGroup[] {
+  const byClient = new Map<string, ClientAlertGroup>();
+
+  alerts.forEach((alert) => {
+    if (!alert.client) return;
+
+    const clientId = String(alert.client.id);
+    const existing = byClient.get(clientId);
+
+    if (existing) {
+      existing.alerts.push(alert);
+    } else {
+      byClient.set(clientId, {
+        client: alert.client,
+        alerts: [alert],
+      });
+    }
+  });
+
+  return Array.from(byClient.values());
+}
+
 export default function DashboardPage() {
   const { data, isLoading, isFetching, refetch } = useDashboard();
   const [status, setStatus] = useState<StatusFilter>('all');
 
-  const alerts = useMemo(() => {
+  // 1) Filter by status
+  const filteredAlerts = useMemo(() => {
     const rows = data?.topAlerts ?? [];
     if (status === 'all') return rows;
     return rows.filter((r: AlertRow) => r.status === status);
   }, [data, status]);
 
-  const handleEmailPress = async (item: AlertRow) => {
-    console.log('Alert item client:', item.client);
-    const gpEmail = item.client?.gp_email;
+  // 2) Group by client (for all statuses; grouping behaviour is mainly useful
+  //    for critical + low, but it also works fine for OK if you filter to it)
+  const groupedAlerts = useMemo(
+    () => groupAlertsByClient(filteredAlerts),
+    [filteredAlerts]
+  );
+
+  /**
+   * Send a single email per client, containing all meds in the group.
+   */
+  const handleEmailPress = async (group: ClientAlertGroup) => {
+    const gpEmail = (group.client as any)?.gp_email;
 
     if (!gpEmail) {
       if (typeof window !== 'undefined') {
@@ -42,13 +78,16 @@ export default function DashboardPage() {
         method: 'POST',
         body: {
           gp_email: gpEmail,
-          client_name: item.client.name,
-          service_name: item.client.service?.name ?? null,
-          medication: item.medication,
-          status: item.status,
-          units_remaining: item.units_remaining,
-          half_date: item.half_date,
-          runout_date: item.runout_date,
+          client_name: group.client.name,
+          service_name: group.client.service?.name ?? null,
+          medications: group.alerts.map((alert) => ({
+            medication: alert.medication,
+            status: alert.status,
+            units_remaining: alert.units_remaining,
+            days_remaining: alert.days_remaining,
+            half_date: alert.half_date,
+            runout_date: alert.runout_date,
+          })),
         },
       });
 
@@ -68,25 +107,25 @@ export default function DashboardPage() {
   return (
     <AppShell>
       {/* Outer wrapper */}
-      <div className="w-full max-w-full min-w-0 overflow-x-hidden px-2 md:px-0">
+      <div className="w-full max-w-5xl min-w-0 mx-auto overflow-x-hidden px-3 pb-6 sm:px-4">
         {/* Header */}
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h1 className="text-xl font-bold text-neutral-900 md:text-2xl">
+        <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-lg font-bold text-neutral-900 sm:text-xl md:text-2xl">
             Medication Dashboard
           </h1>
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1 text-xs text-neutral-800 disabled:opacity-60 md:text-sm cursor-pointer"
+            className="inline-flex items-center justify-center self-start rounded-lg border border-neutral-300 px-3 py-1 text-xs text-neutral-800 disabled:opacity-60 sm:self-auto sm:text-sm cursor-pointer"
           >
             {isFetching ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
 
         {/* Quick Actions */}
-        <section className="mt-6">
-          <h2 className="mb-2 text-lg font-semibold text-neutral-900">
+        <section className="mt-4">
+          <h2 className="mb-2 text-base font-semibold text-neutral-900 sm:text-lg">
             Quick Actions
           </h2>
 
@@ -121,12 +160,12 @@ export default function DashboardPage() {
 
         {/* KPIs */}
         <section className="mt-6">
-          <h2 className="mb-2 text-lg font-semibold text-neutral-900">
+          <h2 className="mb-2 text-base font-semibold text-neutral-900 sm:text-lg">
             What needs attention today
           </h2>
 
-          {/* 2x2 grid on small screens, 4 in a row on md+ */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {/* 1 per row on phones, 2 on small screens, 4 on large */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <KpiTile
               label="Critical (Less than 2 days)"
               value={data?.kpis.critical ?? (isLoading ? '—' : 0)}
@@ -154,7 +193,7 @@ export default function DashboardPage() {
 
         {/* Next schedule */}
         <section className="mt-3">
-          <p className="text-sm text-neutral-700">
+          <p className="text-xs text-neutral-700 sm:text-sm">
             Next notification:{' '}
             {data?.kpis.nextScheduleAt
               ? new Date(data.kpis.nextScheduleAt).toLocaleString()
@@ -169,20 +208,20 @@ export default function DashboardPage() {
 
         {/* Alerts list */}
         <section className="mt-4">
-          <h2 className="mb-2 text-lg font-semibold text-neutral-900">
+          <h2 className="mb-2 text-base font-semibold text-neutral-900 sm:text-lg">
             Urgent Alerts
           </h2>
 
-          {alerts && alerts.length > 0 ? (
-            <div className="space-y-3">
-              {alerts.map((item) => (
+          {groupedAlerts && groupedAlerts.length > 0 ? (
+            <div className="space-y-3 max-w-full">
+              {groupedAlerts.map((group) => (
                 <AlertCard
-                  key={String(item.course_id)}
-                  item={item}
+                  key={String(group.client.id)}
+                  group={group}
                   onPress={() => {
-                    // later: navigate to details
+                    // later: navigate to a detailed client/meds page if needed
                   }}
-                  onEmailPress={() => handleEmailPress(item)}
+                  onEmailPress={handleEmailPress}
                 />
               ))}
             </div>

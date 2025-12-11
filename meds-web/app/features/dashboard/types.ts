@@ -51,3 +51,7 @@ export type AlertRow = {
   };
 };
 
+export type ClientAlertGroup = {
+  client: AlertRow['client'];
+  alerts: AlertRow[];
+};

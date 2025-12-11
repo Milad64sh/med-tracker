@@ -12,6 +12,7 @@ import { AppShell } from '@/app/components/AppShell';
 import { BackButton } from '@/app/components/ui/BackButton';
 import { InputField } from '@/app/components/forms/InputField';
 import { fetcher } from '@/lib/api';
+import { useAlert } from '@/app/AlertProvider';
 
 const schema = z.object({
   name: z.string().min(1, 'Service name is required'),
@@ -24,6 +25,7 @@ export default function EditServicePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const {showAlert} = useAlert();
 
   const {
     control,
@@ -46,11 +48,16 @@ export default function EditServicePage() {
         reset({ name: res.data?.name ?? '' });
       } catch (e: any) {
         window.alert(e?.message || 'Failed to load service');
+        showAlert({
+          title: 'Failed to load service',
+          message: e?.message || 'Something went wrong. Please try again.',
+          variant: 'error',
+        });
       } finally {
         setLoading(false);
       }
     })();
-  }, [id, reset]);
+  }, [id, reset, showAlert]);
 
   const onSubmit = async (form: FormData) => {
     await fetcher(`/api/services/${id}`, {
@@ -62,7 +69,15 @@ export default function EditServicePage() {
     queryClient.invalidateQueries({ queryKey: ['services'] });
 
     window.alert('Service updated successfully');
-    router.back();
+      showAlert({
+        title: 'Service Updated',
+        message: 'The service has been updated successfully.',
+        variant: 'success',
+        onOk: () => {
+          reset();
+          router.back();
+        },
+      });
   };
 
   return (

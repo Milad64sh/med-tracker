@@ -1,5 +1,7 @@
 import './globals.css';
 import QueryProvider from './QueryProvider';
+import { AlertProvider } from './AlertProvider';
+
 
 export const metadata = {
   title: 'Med Tracker',
@@ -15,7 +17,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <QueryProvider>
-          {children}
+          <AlertProvider>
+            {children}
+          </AlertProvider>
         </QueryProvider>
       </body>
     </html>

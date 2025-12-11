@@ -4,9 +4,11 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { fetcher } from '@/lib/api';
+import { useAlert } from '@/app/AlertProvider';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const {showAlert} = useAlert();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -37,16 +39,29 @@ export default function SignUpPage() {
 
     if (!name || !email || !password || !passwordConfirm) {
       window.alert('All fields are required.');
+      showAlert({
+        title: 'Missing Information',
+        message: 'Please complete all required fields before continuing.',
+        variant: 'warning',
+      });
       return;
     }
 
     if (!allRulesPassed) {
-      window.alert('Please meet all password requirements.');
+      showAlert({
+        title: 'Password requirements',
+        message: 'Please meet all password requirements.',
+        variant: 'warning',
+      });
       return;
     }
 
     if (password !== passwordConfirm) {
-      window.alert('Passwords do not match.');
+      showAlert({
+        title: 'Passwords do not match',
+        message: 'Passwords do not match, please try again.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -62,15 +77,25 @@ export default function SignUpPage() {
           password_confirmation: passwordConfirm,
         },
       });
-
-      window.alert('Your account has been created. Please sign in.');
-      router.push('/login'); // or '/signin' if that’s your route
+      showAlert({
+        title: 'Account created',
+        message: 'Your account has been created. Please sign in.',
+        variant: 'success',
+        onOk: () => {
+          router.push('/login');
+        },
+      });
+      
     } catch (e: any) {
-      console.log('Sign up error:', e?.details || e);
+      // console.log('Sign up error:', e?.details || e);
       const message =
         e?.details?.message ||
         'Unable to create account. Check your details and try again.';
-      window.alert(message);
+      showAlert({
+        title: 'Failed to create account',
+        message: message,
+        variant: 'error',
+      });
     } finally {
       setSubmitting(false);
     }

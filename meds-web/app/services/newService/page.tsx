@@ -12,6 +12,7 @@ import { AppShell } from '@/app/components/AppShell';
 import { BackButton } from '@/app/components/ui/BackButton';
 import { InputField } from '@/app/components/forms/InputField';
 import { fetcher } from '@/lib/api';
+import { useAlert } from '@/app/AlertProvider';
 
 const schema = z.object({
   name: z.string().min(1, 'Service name is required'),
@@ -23,6 +24,7 @@ type FormData = z.infer<typeof schema>;
 export default function NewServicePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+      const { showAlert } = useAlert();
 
   const {
     control,
@@ -38,13 +40,20 @@ export default function NewServicePage() {
 
   const onSubmit = async (form: FormData) => {
     const payload: any = { name: form.name.trim() };
+
     await fetcher('/api/services', { method: 'POST', body: payload });
 
     queryClient.invalidateQueries({ queryKey: ['services'] });
 
-    window.alert('Service created successfully');
-    reset();
-    router.back();
+    showAlert({
+      title: 'Service created',
+      message: 'The new Service has been added successfully.',
+      variant: 'success',
+      onOk: () => {
+        reset();
+        router.back();
+      },
+    });
   };
 
   return (

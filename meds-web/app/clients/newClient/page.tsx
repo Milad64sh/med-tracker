@@ -12,6 +12,7 @@ import { fetcher } from '@/lib/api';
 import { useServices } from '@/app/features/services/queries';
 import { DobField } from '@/app/components/forms/DobField';
 import { InputField } from '@/app/components/forms/InputField';
+import { useAlert } from '@/app/AlertProvider';
 
 // ---- Zod schema ----
 const schema = z.object({
@@ -31,6 +32,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function NewClientPage() {
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   const {
     control,
@@ -78,7 +80,11 @@ export default function NewClientPage() {
     const serviceIdNum = Number(selectedServiceId);
     if (!serviceIdNum) {
       setServiceTouched(true);
-      window.alert('Please select a service');
+        showAlert({
+        title: 'Service required',
+        message: 'Please select a service before creating a client.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -91,11 +97,26 @@ export default function NewClientPage() {
       service_id: serviceIdNum,
     };
 
-    await fetcher('/api/clients', { method: 'POST', body: payload });
-    window.alert('Client created successfully');
-    reset();
-    setSelectedServiceId(undefined);
-    router.back();
+    try {
+      await fetcher('/api/clients', { method: 'POST', body: payload });
+
+      showAlert({
+        title: 'Client created',
+        message: 'The new client has been added successfully.',
+        variant: 'success',
+        onOk: () => {
+          reset();
+          setSelectedServiceId(undefined);
+          router.back();
+        },
+      });
+    } catch (e: any) {
+      showAlert({
+        title: 'Failed to create client',
+        message: e?.message || 'Something went wrong. Please try again.',
+        variant: 'error',
+      });
+    }
   };
 
   return (

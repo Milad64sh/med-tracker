@@ -6,6 +6,7 @@ import { fetcher } from '@/lib/api';
 import type { MedicationCourse } from '@/app/features/courses/types';
 import type { Client } from '@/app/features/dashboard/types';
 import { BackButton } from '@/app/components/ui/BackButton';
+import { useAlert } from '@/app/AlertProvider';
 
 type CourseWithRelations = MedicationCourse & {
   client?: Client | null;
@@ -14,6 +15,7 @@ type CourseWithRelations = MedicationCourse & {
 export default function RestockPage() {
   const [courses, setCourses] = useState<CourseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const {showAlert} = useAlert();
 
   // ID of the currently selected course
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
@@ -53,14 +55,18 @@ export default function RestockPage() {
       } catch (e: any) {
         console.warn('Failed to load courses', e?.message);
         if (typeof window !== 'undefined') {
-          window.alert('Failed to load medications.');
+            showAlert({
+              title: 'Failed to load medication',
+              message: e?.message || 'Something went wrong. Please try again.',
+              variant: 'error',
+            });
         }
         setCourses([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [showAlert]);
 
   // 2) The selected course object
   const selectedCourse = useMemo(() => {
@@ -117,7 +123,11 @@ export default function RestockPage() {
 
     if (invalid) {
       if (typeof window !== 'undefined') {
-        window.alert('Please enter only non-negative numbers.');
+        showAlert({
+          title: 'Number required',
+          message: 'Please enter only non-negative numbers.',
+          variant: 'warning',
+        });
       }
       return;
     }
@@ -132,6 +142,12 @@ export default function RestockPage() {
 
       if (typeof window !== 'undefined') {
         window.alert('Medication stock updated successfully.');
+        showAlert({
+          title: 'Medication Restocked',
+          message: 'Medication stock updated successfully.',
+          variant: 'success',
+        });
+        
       }
 
       // update local list
@@ -146,7 +162,11 @@ export default function RestockPage() {
     } catch (e: any) {
       console.warn('Failed to restock', e?.message);
       if (typeof window !== 'undefined') {
-        window.alert(e?.message || 'Failed to restock medication');
+        showAlert({
+          title: 'Failed to restock',
+          message: e?.message || 'Failed to restock medication.',
+          variant: 'error',
+        });
       }
     } finally {
       setSaving(false);
