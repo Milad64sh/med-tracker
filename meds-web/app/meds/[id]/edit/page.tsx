@@ -10,6 +10,7 @@ import { AppShell } from '@/app/components/AppShell';
 import { fetcher } from '@/lib/api';
 import type { Client } from '@/app/features/dashboard/types';
 import { BackButton } from '@/app/components/ui/BackButton';
+import { useAlert } from '@/app/AlertProvider';
 
 const schema = z.object({
   name: z.string().min(1, 'Medication name required'),
@@ -47,6 +48,8 @@ export default function EditCoursePage() {
   const router = useRouter();
   const params = useParams<{ id?: string }>();
   const id = params?.id;
+  const {showAlert} =useAlert()
+
   const courseId = id ? Number(id) : NaN;
 
   const [course, setCourse] = useState<CourseApi | null>(null);
@@ -249,7 +252,12 @@ const {
   const onSubmit = async (data: FormData) => {
     const idNum = Number(selectedClientId);
     if (!idNum) {
-      window.alert('Please select a client.');
+      // window.alert('Please select a client.');
+      showAlert({
+        title: 'Client not selected',
+        message: 'The service has been updated successfully.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -264,13 +272,27 @@ const {
         body: { ...data, client_id: idNum },
       });
 
-      window.alert('Medication updated successfully.');
-      router.back();
+      // window.alert('Medication updated successfully.');
+      showAlert({
+        title: 'Medication Updated',
+        message: 'The medication has been updated successfully.',
+        variant: 'success',
+        onOk: () => {
+          reset();
+          router.back();
+        },
+      });
+
     } catch (e: any) {
-      console.error('Update course error', e);
-      window.alert(
-        e?.message || 'Failed to update medication. Please try again.'
-      );
+      // console.error('Update course error', e);
+      // window.alert(
+      //   e?.message || 'Failed to update medication. Please try again.'
+      // );
+      showAlert({
+          title: 'Failed to update medication',
+          message: e?.message || 'Failed to update medication.. Please try again.',
+          variant: 'error',
+        });
     }
   };
 

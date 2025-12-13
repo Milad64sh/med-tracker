@@ -1,17 +1,9 @@
 'use client';
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { fetcher, setAuthToken } from '@/lib/api';
-
-type LoginResponse = {
-  token?: string;
-  access_token?: string;
-  data?: {
-    token?: string;
-  };
-};
+import { fetcher } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +24,10 @@ export default function LoginPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetcher<LoginResponse>('/api/auth/login', {
+      // This hits your Next.js route handler:
+      // app/api/auth/login/route.ts
+      // which sets the HttpOnly cookie (mt_token)
+      await fetcher('/api/auth/login', {
         method: 'POST',
         body: {
           email: email.trim(),
@@ -40,27 +35,13 @@ export default function LoginPage() {
         },
       });
 
-      const token =
-        res.token ||
-        res.access_token ||
-        res.data?.token ||
-        null;
-
-      if (!token) {
-        throw new Error('No token returned from API. Adjust LoginResponse parsing.');
-      }
-
-      // store token in memory + localStorage
-      setAuthToken(token);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('authToken', token);
-      }
-
-      // navigation similar to RN: go to main app screen
       router.push('/dashboard');
     } catch (err) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : 'Sign in failed';
+      const msg =
+        (err as any)?.details?.message ||
+        (err instanceof Error ? err.message : 'Sign in failed');
+
       setError(msg || 'Sign in failed, check your email and password.');
     } finally {
       setSubmitting(false);
@@ -79,30 +60,29 @@ export default function LoginPage() {
           <label className="mb-1 block text-sm font-medium text-neutral-700">
             Email
           </label>
-            <input
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                type="email"
-                autoComplete="email"
-                className="mb-4 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400"
-                />
-
-
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            autoComplete="email"
+            className="mb-4 w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400"
+          />
 
           <label className="mb-1 block text-sm font-medium text-neutral-700">
             Password
           </label>
           <div className="mb-4 flex items-center rounded-lg border border-neutral-300 bg-white px-3">
-           <input
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            type={showPassword ? 'text' : 'password'}
-            className="flex-1 border-none bg-transparent py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none"
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              className="flex-1 border-none bg-transparent py-2 text-sm text-neutral-900 placeholder-neutral-400 outline-none"
             />
 
             <button
               type="button"
-              onClick={() => setShowPassword(prev => !prev)}
+              onClick={() => setShowPassword((prev) => !prev)}
               className="ml-2 text-xs text-neutral-600"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
@@ -110,11 +90,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {error && (
-            <p className="mb-3 text-sm text-red-600">
-              {error}
-            </p>
-          )}
+          {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
           <button
             type="submit"
@@ -132,14 +108,9 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <div className="mt-2 mb-4 flex flex-row justify-center text-sm">
-            <span className="mr-1 text-neutral-700">No account?</span>
-            <Link href="/signup">
-              <span className="cursor-pointer text-blue-600">
-                Sign up
-              </span>
-            </Link>
-          </div>
+          <p className="mt-2 text-center text-sm text-neutral-600">
+            Invite-only access. Please use your invite link to create an account.
+          </p>
         </form>
       </div>
     </div>

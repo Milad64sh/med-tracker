@@ -3,6 +3,7 @@ import QueryProvider from './QueryProvider';
 import { AlertProvider } from './AlertProvider';
 
 
+
 export const metadata = {
   title: 'Med Tracker',
   description: 'Medication tracking dashboard',
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body>
         <QueryProvider>
           <AlertProvider>
+
             {children}
           </AlertProvider>
         </QueryProvider>

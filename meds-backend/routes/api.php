@@ -5,19 +5,22 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\InviteController;
 
 // AUTH
-Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/auth/register', [AuthController::class, 'register']); // invite-only now
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::match(['put', 'patch'], '/auth/me', [AuthController::class, 'update']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::post('/alerts/email-gp', [DashboardController::class, 'emailGp']);
+
+    Route::post('/invites', [InviteController::class, 'store']); // admin only
 });
+
 
 // CLIENT
 Route::post('/clients',[ClientController::class,'store']);

@@ -2,13 +2,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { fetcher } from '@/lib/api';
 import { useAlert } from '@/app/AlertProvider';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const {showAlert} = useAlert();
+  const searchParams = useSearchParams();
+  const { showAlert } = useAlert();
+
+  // Invite token from URL: /signup?token=xxxx
+  const inviteToken = (searchParams.get('token') || '').trim();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -37,8 +41,18 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Hard block: invite-only
+    if (!inviteToken) {
+      showAlert({
+        title: 'Invite required',
+        message: 'This app is invite-only. Please use your invite link to sign up.',
+        variant: 'warning',
+        onOk: () => router.push('/login'),
+      });
+      return;
+    }
+
     if (!name || !email || !password || !passwordConfirm) {
-      window.alert('All fields are required.');
       showAlert({
         title: 'Missing Information',
         message: 'Please complete all required fields before continuing.',
@@ -71,12 +85,14 @@ export default function SignUpPage() {
       await fetcher('/api/auth/register', {
         method: 'POST',
         body: {
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim(),
           password,
           password_confirmation: passwordConfirm,
+          invite_token: inviteToken, // ✅ required by backend
         },
       });
+
       showAlert({
         title: 'Account created',
         message: 'Your account has been created. Please sign in.',
@@ -85,15 +101,13 @@ export default function SignUpPage() {
           router.push('/login');
         },
       });
-      
     } catch (e: any) {
-      // console.log('Sign up error:', e?.details || e);
       const message =
         e?.details?.message ||
         'Unable to create account. Check your details and try again.';
       showAlert({
         title: 'Failed to create account',
-        message: message,
+        message,
         variant: 'error',
       });
     } finally {
@@ -110,29 +124,44 @@ export default function SignUpPage() {
       >
         {ok ? '✓' : '✕'}
       </span>
-      <span
-        className={`ml-2 text-sm ${
-          ok ? 'text-emerald-600' : 'text-neutral-600'
-        }`}
-      >
+      <span className={`ml-2 text-sm ${ok ? 'text-emerald-600' : 'text-neutral-600'}`}>
         {label}
       </span>
     </div>
   );
 
+  // If no token, show the invite-only screen instead of the form
+  if (!inviteToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+        <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white px-6 py-6 shadow-sm">
+          <h1 className="mb-2 text-2xl font-semibold text-neutral-900">
+            Invite required
+          </h1>
+          <p className="mb-6 text-sm text-neutral-700">
+            This app is invite-only. Please use the invite link you received to create an account.
+          </p>
+
+          <Link
+            href="/login"
+            className="flex w-full items-center justify-center rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Back to sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white px-6 py-6 shadow-sm">
-        <h1 className="mb-6 text-2xl font-semibold text-neutral-900">
-          Create an account
-        </h1>
+        <h1 className="mb-6 text-2xl font-semibold text-neutral-900">Create an account</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* FULL NAME */}
           <div>
-            <label className="mb-1 block text-sm text-neutral-700">
-              Full Name
-            </label>
+            <label className="mb-1 block text-sm text-neutral-700">Full Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -143,9 +172,7 @@ export default function SignUpPage() {
 
           {/* EMAIL */}
           <div>
-            <label className="mb-1 block text-sm text-neutral-700">
-              Email
-            </label>
+            <label className="mb-1 block text-sm text-neutral-700">Email</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -157,9 +184,7 @@ export default function SignUpPage() {
 
           {/* PASSWORD */}
           <div>
-            <label className="mb-1 block text-sm text-neutral-700">
-              Password
-            </label>
+            <label className="mb-1 block text-sm text-neutral-700">Password</label>
             <div className="flex items-center rounded-lg border border-neutral-300 bg-white px-3">
               <input
                 value={password}
@@ -183,18 +208,13 @@ export default function SignUpPage() {
               <Rule ok={rules.upper} label="Contains an uppercase letter (A–Z)" />
               <Rule ok={rules.lower} label="Contains a lowercase letter (a–z)" />
               <Rule ok={rules.number} label="Contains a number (0–9)" />
-              <Rule
-                ok={rules.special}
-                label="Contains a special character (!@#$%^&*)"
-              />
+              <Rule ok={rules.special} label="Contains a special character (!@#$%^&*)" />
             </div>
           </div>
 
           {/* CONFIRM PASSWORD */}
           <div>
-            <label className="mb-1 block text-sm text-neutral-700">
-              Confirm Password
-            </label>
+            <label className="mb-1 block text-sm text-neutral-700">Confirm Password</label>
             <div className="flex items-center rounded-lg border border-neutral-300 bg-white px-3">
               <input
                 value={passwordConfirm}
@@ -205,9 +225,7 @@ export default function SignUpPage() {
               />
               <button
                 type="button"
-                onClick={() =>
-                  setShowPasswordConfirm((prev) => !prev)
-                }
+                onClick={() => setShowPasswordConfirm((prev) => !prev)}
                 className="ml-2 text-xs text-neutral-600 hover:text-neutral-800"
               >
                 {showPasswordConfirm ? 'Hide' : 'Show'}
@@ -231,9 +249,7 @@ export default function SignUpPage() {
 
         {/* LINK TO SIGN IN */}
         <div className="mt-4 flex justify-center">
-          <p className="mr-1 text-sm text-neutral-700">
-            Already have an account?
-          </p>
+          <p className="mr-1 text-sm text-neutral-700">Already have an account?</p>
           <Link href="/login" className="text-sm text-blue-600 hover:underline">
             Sign in
           </Link>

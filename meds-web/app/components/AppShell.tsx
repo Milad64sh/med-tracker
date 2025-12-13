@@ -5,18 +5,19 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 
-import { fetcher, setAuthToken } from '@/lib/api';
+import { fetcher } from '@/lib/api';
 
 type AppShellProps = {
   children: React.ReactNode;
 };
-
 type User = {
   id: number;
   name: string;
   email: string;
   created_at?: string | null;
+  is_admin?: boolean;
 };
+
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
@@ -45,21 +46,21 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     retry: false,
   });
 
+  const adminNavItem = { href: '/admin/invites', label: 'Invite Users' };
+
+
   const initials = getInitials(user?.name ?? null);
 
-  const handleLogout = async () => {
-    try {
-      await fetcher('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    } catch {
-      // ignore
-    } finally {
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem('authToken');
-      }
-      setAuthToken(null); // ✅ clear in-memory token too
-      router.push('/login');
-    }
-  };
+const handleLogout = async () => {
+  try {
+    await fetcher('/api/auth/logout', { method: 'POST' });
+  } catch {
+  } finally {
+    router.push('/login');
+    router.refresh(); 
+  }
+};
+
 
   // Close menus when route changes
   React.useEffect(() => {
@@ -79,6 +80,20 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
 
           <nav className="space-y-1">
+            {user?.is_admin && (
+              <Link href={adminNavItem.href}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium cursor-pointer ${
+                    pathname === adminNavItem.href || pathname?.startsWith(adminNavItem.href + '/')
+                      ? 'bg-neutral-900 text-white'
+                      : 'text-neutral-700 hover:bg-neutral-100'
+                  }`}
+                >
+                  {adminNavItem.label}
+                </button>
+              </Link>
+            )}
             {navItems.map((item) => {
               const active =
                 pathname === item.href || pathname?.startsWith(item.href + '/');
@@ -212,6 +227,20 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 </div>
 
                 <nav className="space-y-1">
+                  {user?.is_admin && (
+                    <Link href={adminNavItem.href}>
+                      <button
+                        type="button"
+                        className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium cursor-pointer ${
+                          pathname === adminNavItem.href || pathname?.startsWith(adminNavItem.href + '/')
+                            ? 'bg-neutral-900 text-white'
+                            : 'text-neutral-700 hover:bg-neutral-100'
+                        }`}
+                      >
+                        {adminNavItem.label}
+                      </button>
+                    </Link>
+                  )}
                   {navItems.map((item) => {
                     const active =
                       pathname === item.href ||

@@ -47,7 +47,6 @@ export default function EditServicePage() {
         const res = await fetcher<ShowServiceResponse>(`/api/services/${id}`);
         reset({ name: res.data?.name ?? '' });
       } catch (e: any) {
-        window.alert(e?.message || 'Failed to load service');
         showAlert({
           title: 'Failed to load service',
           message: e?.message || 'Something went wrong. Please try again.',
@@ -67,8 +66,6 @@ export default function EditServicePage() {
 
     // Refresh services list
     queryClient.invalidateQueries({ queryKey: ['services'] });
-
-    window.alert('Service updated successfully');
       showAlert({
         title: 'Service Updated',
         message: 'The service has been updated successfully.',
