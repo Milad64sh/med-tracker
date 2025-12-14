@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useAlert } from '@/app/AlertProvider';
 
 type ServiceCardProps = {
   item: {
@@ -15,14 +16,17 @@ type ServiceCardProps = {
 
 export function ServiceCard({ item, onDelete, onPress }: ServiceCardProps) {
   const editHref = `/services/${item.id}/edit`;
+  const {showAlert} = useAlert();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const name = item.name ?? 'this service';
-    const ok = window.confirm(`Are you sure you want to delete “${name}”?`);
-    if (ok) {
-      onDelete(item.id);
-    }
+    showAlert({
+      title: 'Confirm delete',
+      message: `Are you sure you want to delete “${name}”? This cannot be undone.`,
+      variant: 'warning',
+      onOk: () => onDelete(item.id),
+    });
   };
 
   const handleCardClick = () => {

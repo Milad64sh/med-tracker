@@ -69,7 +69,7 @@ export async function GET(
   return NextResponse.json(json ?? null, { status: res.status });
 }
 
-export async function PATCH(
+export async function PUT(
   req: Request,
   ctx: { params: RouteParams | Promise<RouteParams> }
 ) {
@@ -90,7 +90,7 @@ export async function PATCH(
   const body = await req.json();
 
   const res = await fetch(backendUrl(`/api/services/${id}`), {
-    method: "PATCH",
+    method: "PUT",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",

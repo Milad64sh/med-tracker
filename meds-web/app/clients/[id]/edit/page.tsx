@@ -82,6 +82,7 @@ export default function EditClientPage() {
       try {
         setSvcLoading(true);
         const sres = await fetcher<ServiceRow[]>('/api/services/lookup');
+        
         setServices(sres);
       } catch (e: any) {
         console.warn('Failed to load services:', e?.message);

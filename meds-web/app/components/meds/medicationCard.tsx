@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import type { Client } from '@/app/features/dashboard/types';
 import type { MedicationCourse } from '@/app/features/courses/types';
+import { useAlert } from '@/app/AlertProvider';
 
 type CourseWithRelations = MedicationCourse & {
   client?: Client | null;
@@ -28,6 +29,7 @@ export function MedicationCard({
   onRestockPress,
 }: MedicationCardProps) {
   const editHref = `/meds/${item.id}/edit`;
+  const {showAlert} = useAlert();
 
   const clientInitials = item.client?.initials ?? '—';
   const serviceName = item.client?.service?.name ?? '—';
@@ -48,12 +50,12 @@ export function MedicationCard({
       : '—';
 
   const handleDeleteClick = () => {
-    const ok = window.confirm(
-      `Are you sure you want to delete “${item.name ?? 'this medication'}”?`
-    );
-    if (ok) {
-      onDelete(item.id);
-    }
+    showAlert({
+      title: 'Confirm delete',
+      message: `Are you sure you want to delete “${item.name}”? This cannot be undone.`,
+      variant: 'warning',
+      onOk: () => onDelete(item.id),
+    });
   };
 
   return (

@@ -1,36 +1,72 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
-import { backendUrl, getTokenFromCookie } from "@/app/api/_utils/backend";
+import { getTokenFromCookie } from "@/app/api/_utils/backend";
 
-export const dynamic = "force-dynamic"; // ✅ ensures cookie-based auth always runs dynamically
+export const dynamic = "force-dynamic";
+
+function getBackendBaseUrl() {
+  // ✅ server env var (set this in Vercel)
+  const base =
+    process.env.BACKEND_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    "";
+
+  return base.replace(/\/$/, "");
+}
+
+function safeJson(text: string) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text.slice(0, 2000) };
+  }
+}
 
 export async function POST(req: Request) {
-  const token = await getTokenFromCookie();
+  const backendBase = getBackendBaseUrl();
 
-  // ✅ temporary debug (super useful): remove once working
-  if (!token) {
+  if (!backendBase) {
     return NextResponse.json(
       {
-        message: "Unauthenticated",
-        debug: {
-          hint: "Token cookie not found in this /api/invites request.",
-        },
+        message: "Server misconfiguration: backend base URL is not set.",
+        hint: "Set BACKEND_API_BASE_URL in Vercel to https://api.miladshalikarian.co.uk and redeploy.",
       },
-      { status: 401 }
+      { status: 500 }
     );
   }
 
-  const body = await req.json();
+  const token = await getTokenFromCookie();
+  if (!token) {
+    return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
+  }
 
-  const res = await fetch(backendUrl("/api/invites"), {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const body = await req.json().catch(() => ({}));
+  const url = `${backendBase}/api/invites`;
 
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const text = await res.text().catch(() => "");
+    const data = text ? safeJson(text) : null;
+
+    return NextResponse.json(data ?? null, { status: res.status });
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        message: "Failed to reach backend invites endpoint.",
+        url,
+        error: err?.message || String(err),
+      },
+      { status: 502 }
+    );
+  }
 }

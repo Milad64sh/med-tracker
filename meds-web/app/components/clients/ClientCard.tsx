@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { formatUK } from '@/app/utils/formatUK';
 import type { Client } from '@/app/features/dashboard/types';
+import { useAlert } from '@/app/AlertProvider';
 
 type ClientCardProps = {
   item: Client;
@@ -13,14 +14,17 @@ type ClientCardProps = {
 
 export function ClientCard({ item, onDelete, onPress }: ClientCardProps) {
   const editHref = `/clients/${item.id}/edit`;
+  const {showAlert} = useAlert();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     const name = item.initials ?? 'this client';
-    const ok = window.confirm(`Are you sure you want to delete “${name}”?`);
-    if (ok) {
-      onDelete(item.id);
-    }
+    showAlert({
+      title: 'Confirm delete',
+      message: `Are you sure you want to delete “${name}”? This cannot be undone.`,
+      variant: 'warning',
+      onOk: () => onDelete(item.id),
+    });
   };
 
   const handleCardClick = () => {
