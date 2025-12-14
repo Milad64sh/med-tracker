@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\InviteCreatedMail;
+// use App\Mail\InviteCreatedMail;
 use App\Models\Invite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -25,13 +25,14 @@ class InviteController extends Controller
             'expires_at' => now()->addDays(3),
         ]);
 
-        $inviteLink = rtrim(config('app.frontend_url'), '/') . '/signup?token=' . $invite->token;
+        $frontendUrl = config('app.frontend_url') ?? env('FRONTEND_URL') ?? '';
+        $inviteLink = rtrim($frontendUrl, '/') . '/signup?token=' . $invite->token;
 
         // ✅ Send invite email
-        Mail::to($invite->email)->send(new InviteCreatedMail(
-            inviteLink: $inviteLink,
-            expiresAt: $invite->expires_at
-        ));
+        // Mail::to($invite->email)->send(new InviteCreatedMail(
+        //     inviteLink: $inviteLink,
+        //     expiresAt: $invite->expires_at
+        // ));
 
         return response()->json([
             'invite_link' => $inviteLink,
