@@ -16,7 +16,7 @@ export type DashboardResponse = {
     pendingOrders: number;
     nextScheduleAt: string | null; // ISO
   };
-  topAlerts: AlertRow[];
+  alerts: AlertRow[];
 };
 
 export type Client = {

@@ -15,6 +15,7 @@ import { fetcher } from '@/lib/api';
 import { useClients } from '@/app/features/clients/queries';
 import type { Client } from '@/app/features/dashboard/types';
 import { formatUK } from '@/app/utils/formatUK';
+import { useAlert } from '@/app/AlertProvider';
 
 // ---- Zod schema ----
 const schema = z.object({
@@ -44,6 +45,7 @@ const formatDateForApi = (d: Date) => {
 export default function NewMedPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const {showAlert} = useAlert();
 
 const {
   control,
@@ -89,7 +91,12 @@ const {
   const onSubmit = async (data: FormData) => {
     const idNum = Number(selectedClientId);
     if (!idNum) {
-      window.alert('Please select a client first');
+      // window.alert('Please select a client first');
+      showAlert({
+        title: 'Select Client',
+        message: 'Please select a client first',
+        variant: 'warning',
+    });
       return;
     }
 
@@ -101,10 +108,18 @@ const {
     // refresh meds list
     queryClient.invalidateQueries({ queryKey: ['courses'] });
 
-    window.alert('Medication added successfully');
-    reset();
-    setSelectedClientId(undefined);
-    router.back();
+    // window.alert('Medication added successfully');
+    showAlert({
+        title: 'Medication created',
+        message: 'The new Medication has been added successfully.',
+        variant: 'success',
+        onOk: () => {
+        reset();
+        setSelectedClientId(undefined);
+        router.back();
+        },
+      });
+
   };
 
   return (

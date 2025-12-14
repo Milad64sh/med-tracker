@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
   // 1) Filter by status
   const filteredAlerts = useMemo(() => {
-    const rows = data?.topAlerts ?? [];
+    const rows = data?.alerts ?? [];
     if (status === 'all') return rows;
     return rows.filter((r: AlertRow) => r.status === status);
   }, [data, status]);

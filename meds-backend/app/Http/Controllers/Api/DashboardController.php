@@ -65,13 +65,13 @@ class DashboardController extends Controller
             ->value('fire_at');
 
         // Top urgent alerts
-        $topAlerts = MedicationCourse::query()
+        $alerts = MedicationCourse::query()
             ->with(['client.service'])
             ->select('*')
             ->addSelect(DB::raw("$daysExpr as days_remaining"))
             ->addSelect(DB::raw("$unitsExpr as units_remaining"))
+            ->orderBy('client_id')
             ->orderByRaw('days_remaining ASC NULLS LAST')
-            ->limit(10)
             ->get()
             ->map(function ($c) {
                 $days  = is_null($c->days_remaining) ? null : (int) $c->days_remaining;
@@ -115,7 +115,7 @@ class DashboardController extends Controller
                     ? Carbon::parse($nextScheduleAt)->toISOString()
                     : null,
             ],
-            'topAlerts' => $topAlerts,
+            'alerts' => $alerts,
         ]);
     }
 
