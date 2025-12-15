@@ -1,5 +1,5 @@
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getTokenFromCookie } from "@/app/api/_utils/backend";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,10 @@ function safeJson(text: string) {
   }
 }
 
-export async function PATCH(req: Request, ctx: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   const backendBase = getBackendBaseUrl();
   if (!backendBase) {
     return NextResponse.json(
@@ -34,12 +37,11 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   const token = await getTokenFromCookie();
   if (!token) return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
 
-  const { id } = ctx.params;
+  const { id } = await params;
+
   const url = `${backendBase}/api/courses/${id}/restock`;
 
-  // forward body (if any)
   const bodyText = await req.text().catch(() => "");
-
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
