@@ -15,6 +15,8 @@ type CourseWithRelations = MedicationCourse & {
 export default function RestockPage() {
   const [courses, setCourses] = useState<CourseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+
   const {showAlert} = useAlert();
 
   // ID of the currently selected course
@@ -68,35 +70,74 @@ export default function RestockPage() {
     })();
   }, [showAlert]);
 
+    // Build unique client list from courses
+  const clientOptions = useMemo(() => {
+    const map = new Map<string, { id: string; label: string }>();
+
+    for (const c of courses) {
+      const client = c.client;
+      if (!client?.id) continue;
+
+      const id = String(client.id);
+      const labelParts = [client.initials || `Client #${id}`];
+
+      // include service name if present
+      const serviceName = (client as any)?.service?.name;
+      if (serviceName) labelParts.push(serviceName);
+
+      map.set(id, { id, label: labelParts.join(' • ') });
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [courses]);
+
+  // Filter courses by selected client (if any)
+  const filteredCourses = useMemo(() => {
+    if (!selectedClientId) return courses;
+    return courses.filter((c) => String(c.client?.id ?? '') === selectedClientId);
+  }, [courses, selectedClientId]);
+
+
   // 2) The selected course object
   const selectedCourse = useMemo(() => {
     if (!selectedId) return null;
-    return courses.find((c) => String(c.id) === selectedId) ?? null;
-  }, [selectedId, courses]);
+    return filteredCourses.find((c) => String(c.id) === selectedId) ?? null;
+  }, [selectedId, filteredCourses]);
+
 
   // Helper: parse numeric input, return undefined if empty
   const parseNumberOrUndefined = (val: string): number | undefined =>
     val.trim() === '' ? undefined : Number(val);
 
+    const handleSelectClient = (clientId: string) => {
+    setSelectedClientId(clientId);
+
+    // reset medication selection + form when client changes
+    setSelectedId(undefined);
+    setShowForm(false);
+
+    // reset form fields
+    setPackSize('');
+    setPacksOnHand('');
+    setLooseUnits('');
+    setOpeningUnits('');
+  };
+
+
   // 3) When user selects a course from dropdown
   const handleSelectCourse = (value?: string) => {
     setSelectedId(value);
-    setShowForm(false); // hide form until user clicks "Restock" again
+    setShowForm(false);
 
-    const course = courses.find((c) => String(c.id) === value);
+    const course = filteredCourses.find((c) => String(c.id) === value);
     if (!course) return;
 
     setPackSize(course.pack_size != null ? String(course.pack_size) : '');
-    setPacksOnHand(
-      course.packs_on_hand != null ? String(course.packs_on_hand) : ''
-    );
-    setLooseUnits(
-      course.loose_units != null ? String(course.loose_units) : ''
-    );
-    setOpeningUnits(
-      course.opening_units != null ? String(course.opening_units) : ''
-    );
+    setPacksOnHand(course.packs_on_hand != null ? String(course.packs_on_hand) : '');
+    setLooseUnits(course.loose_units != null ? String(course.loose_units) : '');
+    setOpeningUnits(course.opening_units != null ? String(course.opening_units) : '');
   };
+
 
   // 4) Handle restock save
   const handleSaveRestock = async () => {
@@ -174,10 +215,11 @@ export default function RestockPage() {
   };
 
   // Options for select dropdown
-  const options = courses.map((c) => ({
+  const options = filteredCourses.map((c) => ({
     label: c.name ?? `Course #${c.id}`,
     value: String(c.id),
   }));
+
 
   if (loading) {
     return (
@@ -199,6 +241,29 @@ export default function RestockPage() {
 
         <BackButton className='mb-4'/>
 
+                {/* Client select dropdown */}
+        <div className="mb-4">
+          <label className="mb-1 block text-sm text-neutral-700">Client</label>
+          <select
+            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400 cursor-pointer"
+            value={selectedClientId}
+            onChange={(e) => handleSelectClient(e.target.value)}
+            disabled={clientOptions.length === 0}
+          >
+            <option value="">
+              {clientOptions.length === 0 ? 'No clients found' : 'All clients'}
+            </option>
+            {clientOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-neutral-500">
+            Select a client to filter the medication list.
+          </p>
+        </div>
+
         {/* Medication select dropdown */}
         <div className="mb-4">
           <label className="mb-1 block text-sm text-neutral-700">
@@ -210,13 +275,15 @@ export default function RestockPage() {
             onChange={(e) =>
               handleSelectCourse(e.target.value || undefined)
             }
-            disabled={courses.length === 0}
+            disabled={filteredCourses.length === 0}
           >
-            <option value="" disabled>
-              {courses.length === 0
-                ? 'No medications found'
-                : 'Select a medication…'}
-            </option>
+              <option value="" disabled>
+                {filteredCourses.length === 0
+                  ? selectedClientId
+                    ? 'No medications for this client'
+                    : 'No medications found'
+                  : 'Select a medication…'}
+              </option>
             {options.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
