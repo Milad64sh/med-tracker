@@ -182,7 +182,6 @@ export default function RestockPage() {
       });
 
       if (typeof window !== 'undefined') {
-        window.alert('Medication stock updated successfully.');
         showAlert({
           title: 'Medication Restocked',
           message: 'Medication stock updated successfully.',
