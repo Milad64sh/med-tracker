@@ -13,12 +13,15 @@ return new class extends Migration
     {
         Schema::create('invites', function (Blueprint $table) {
             $table->id();
-            $table->string('email')->unique();
-            $table->string('token')->unique();
-            $table->timestamp('expires_at');
+            $table->string('email')->index(); // allow re-invites later
+            $table->string('token', 64)->unique(); // sha256 hash length
+
+            $table->timestamp('expires_at')->nullable();
             $table->timestamp('used_at')->nullable();
+
             $table->timestamps();
         });
+
 
     }
 

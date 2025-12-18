@@ -8,36 +8,37 @@ use App\Models\Invite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 
 class InviteController extends Controller
 {
-    public function store(Request $request)
-    {
-        abort_unless($request->user()->is_admin, 403);
+public function store(Request $request)
+{
+    $data = $request->validate([
+        'email' => ['required', 'email'],
+    ]);
 
-        $data = $request->validate([
-            'email' => ['required', 'email', 'unique:invites,email'],
-        ]);
+    // ✅ Remove any previous invite for this email (expired/unused/used)
+    Invite::where('email', $data['email'])->delete();
 
-        $invite = Invite::create([
-            'email'      => $data['email'],
-            'token'      => (string) Str::uuid(),
-            'expires_at' => now()->addDays(3),
-        ]);
+    $plainToken = Str::random(64);
 
-        $frontendUrl = config('app.frontend_url') ?? env('FRONTEND_URL') ?? '';
-        $inviteLink = rtrim($frontendUrl, '/') . '/signup?token=' . $invite->token;
+    $invite = Invite::create([
+        'email'      => $data['email'],
+        'token'      => hash('sha256', $plainToken), // store HASH only
+        'expires_at' => now()->addDays(3),
+    ]);
 
-        // ✅ Send invite email
-        // Mail::to($invite->email)->send(new InviteCreatedMail(
-        //     inviteLink: $inviteLink,
-        //     expiresAt: $invite->expires_at
-        // ));
+    $frontendUrl = rtrim(config('app.frontend_url'), '/');
 
-        return response()->json([
-            'invite_link' => $inviteLink,
-            'expires_at'  => $invite->expires_at?->toIso8601String(),
-            'emailed'     => true,
-        ], 201);
-    }
+    $inviteLink = $frontendUrl . '/signup?token=' . $plainToken . '&email=' . urlencode($invite->email);
+
+
+    return response()->json([
+        'invite_link' => $inviteLink,
+        'expires_at'  => $invite->expires_at?->toIso8601String(),
+        'emailed'     => true,
+    ], 201);
+}
+
 }

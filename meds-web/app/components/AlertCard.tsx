@@ -144,14 +144,16 @@ export function AlertCard({ group, onPress, onEmailPress }: AlertCardProps) {
             {status.toUpperCase()}
           </span>
 
-          {/* Single Email GP button per client */}
-          <button
-            type="button"
-            onClick={handleEmailClick}
-            className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white"
-          >
-            Email GP
-          </button>
+          {/* Single Email GP button per client (only for low/critical) */}
+          {(status === 'low' || status === 'critical') && !!onEmailPress && (
+            <button
+              type="button"
+              onClick={handleEmailClick}
+              className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white"
+            >
+              Email GP
+            </button>
+          )}
         </div>
       </div>
 

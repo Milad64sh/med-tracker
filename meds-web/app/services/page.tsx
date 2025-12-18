@@ -7,10 +7,14 @@ import { AppShell } from '../components/AppShell';
 import { useServices, useDeleteService } from '../features/services/queries';
 import { ServiceCard } from '../components/services/ServiceCard';
 import { formatUK } from '../utils/formatUK';
+import { useAuth } from '@/app/hooks/useAuth';
+
 
 export default function ServicesPage() {
   const { data, isLoading, error, refetch } = useServices();
   const del = useDeleteService();
+  const { isAdmin } = useAuth();
+
 
   const [selectedService, setSelectedService] = useState<any | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -33,15 +37,16 @@ export default function ServicesPage() {
       {/* Header row: title + Add button */}
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-900">Services</h1>
-
-        <Link href="/services/newService">
-          <button
-            type="button"
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 cursor-pointer"
-          >
-            Add
-          </button>
-        </Link>
+        {isAdmin && (
+          <Link href="/services/newService">
+            <button
+              type="button"
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 cursor-pointer"
+            >
+              Add
+            </button>
+          </Link>
+        )}
       </div>
 
       {/* Loading state */}

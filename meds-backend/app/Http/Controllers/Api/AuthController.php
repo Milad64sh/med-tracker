@@ -10,47 +10,44 @@ use Illuminate\Support\Facades\Password as PasswordBroker;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 use App\Models\Invite;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
 
-
 public function register(Request $request)
 {
     $data = $request->validate([
-        'name'     => ['required', 'string', 'max:255'],
-        'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
-        'password' => [
-            'required',
-            'confirmed',
-            Password::min(12)->mixedCase()->numbers()->symbols()
-        ],
+        'name'         => ['required', 'string', 'max:255'],
+        'email'        => ['required', 'email', 'max:255', 'unique:users,email'],
+        'password'     => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
         'invite_token' => ['required', 'string'],
     ]);
 
-    $invite = Invite::where('token', $data['invite_token'])->first();
+    return DB::transaction(function () use ($data) {
 
-    if (! $invite || ! $invite->isValid() || $invite->email !== $data['email']) {
-        return response()->json([
-            'message' => 'Invalid or expired invite.'
-        ], 403);
-    }
+        $invite = Invite::where('token', hash('sha256', $data['invite_token']))
+            ->lockForUpdate()
+            ->first();
 
-    $user = User::create([
-        'name'     => $data['name'],
-        'email'    => $data['email'],
-        'password' => Hash::make($data['password']),
-    ]);
+        if (!$invite || !$invite->isValid() || $invite->email !== $data['email']) {
+            return response()->json(['message' => 'Invalid or expired invite.'], 403);
+        }
 
-    $invite->update(['used_at' => now()]);
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
 
-    $token = $user->createToken('mobile')->plainTextToken;
+        $invite->update(['used_at' => now()]);
 
-    return response()->json([
-        'user'  => $user,
-        'token' => $token,
-    ], 201);
+        $token = $user->createToken('mobile')->plainTextToken;
+
+        return response()->json(['user' => $user, 'token' => $token], 201);
+    });
 }
+
 
 
     public function login(Request $request)

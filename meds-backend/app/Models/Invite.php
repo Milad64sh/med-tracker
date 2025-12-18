@@ -20,6 +20,9 @@ class Invite extends Model
 
     public function isValid(): bool
     {
-        return is_null($this->used_at) && now()->lt($this->expires_at);
+        return is_null($this->used_at)
+            && ($this->expires_at === null || $this->expires_at->isFuture());
     }
+
+
 }

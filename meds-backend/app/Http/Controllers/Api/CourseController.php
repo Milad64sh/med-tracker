@@ -105,13 +105,18 @@ class CourseController extends Controller
             'packs_on_hand' => ['nullable', 'integer', 'min:0'],
             'loose_units'   => ['nullable', 'integer', 'min:0'],
             'opening_units' => ['nullable', 'integer', 'min:0'],
+            'restock_date'  => ['nullable', 'date'],
         ]);
 
         // Merge with existing values so computeDates has full context
         $merged = array_merge($course->toArray(), $data);
 
+        $base = !empty($data['restock_date'])
+            ? Carbon::parse($data['restock_date'], 'Europe/London')
+            : null;
+
         // Recompute runout_date / half_date based on new stock
-        $merged = $this->computeDates($merged);
+        $merged = $this->computeDates($merged, $base);
 
         $course = DB::transaction(function () use ($course, $merged) {
             $course->update($merged);
@@ -134,12 +139,11 @@ class CourseController extends Controller
      * - totalUnits = max(pack info, opening_units)
      * - only compute when daily_use > 0
      */
-private function computeDates(array $data): array
+private function computeDates(array $data, ?Carbon $baseDate = null): array
 {
     $dosePerAdmin = (float) ($data['dose_per_admin'] ?? 0);
     $adminsPerDay = (float) ($data['admins_per_day'] ?? 0);
 
-    // If daily_use missing or <= 0, compute it
     if (empty($data['daily_use']) || (float)$data['daily_use'] <= 0) {
         $data['daily_use'] = $dosePerAdmin * $adminsPerDay;
     }
@@ -153,7 +157,12 @@ private function computeDates(array $data): array
     $totalUnitsFromPacks = ($packSize * $packsOnHand) + $looseUnits;
     $totalUnits          = max($totalUnitsFromPacks, $openingUnits);
 
-    if (!empty($data['start_date'])) {
+    // ✅ base date:
+    // - if provided (restock), use it
+    // - otherwise fall back to stored start_date (create/update flows)
+    if ($baseDate) {
+        $startDate = $baseDate->copy();
+    } elseif (!empty($data['start_date'])) {
         $startDate = Carbon::parse($data['start_date']);
     } else {
         return $data;
@@ -167,7 +176,6 @@ private function computeDates(array $data): array
 
     return $data;
 }
-
 
     /**
      * Delete and recreate schedules for the given course based on half/runout dates.

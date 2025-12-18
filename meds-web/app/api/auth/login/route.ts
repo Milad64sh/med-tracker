@@ -34,6 +34,9 @@ export async function POST(req: Request) {
     sameSite: "lax",
     path: "/",
   });
+  const url = backendUrl("/api/auth/login");
+console.log("LOGIN URL:", url);
+
 
   // Return user (token not needed on client)
   return NextResponse.json({ user: data.user }, { status: 200 });

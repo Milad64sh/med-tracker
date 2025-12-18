@@ -8,10 +8,14 @@ import { useClients, useDeleteClient } from '../features/clients/queries';
 import { ClientCard } from '../components/clients/ClientCard';
 import { formatUK } from '../utils/formatUK';
 import { BackButton } from '../components/ui/BackButton';
+import { useAuth } from '@/app/hooks/useAuth';
+
 
 export default function ClientsPage() {
   const { data, isLoading, error, refetch } = useClients();
   const del = useDeleteClient();
+  const { isAdmin } = useAuth();
+
 
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -35,14 +39,16 @@ export default function ClientsPage() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-900">Clients</h1>
 
-        <Link href="/clients/newClient">
-          <button
-            type="button"
-            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 cursor-pointer"
-          >
-            Add
-          </button>
-        </Link>
+        {isAdmin && (
+          <Link href="/clients/newClient">
+            <button
+              type="button"
+              className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 cursor-pointer"
+            >
+              Add
+            </button>
+          </Link>
+        )}
       </div>
       <BackButton className='mb-4'/>
 

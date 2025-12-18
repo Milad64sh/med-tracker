@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/app/components/AppShell';
 import { fetcher } from '@/lib/api';
 import type { MedicationCourse } from '@/app/features/courses/types';
@@ -8,16 +9,32 @@ import type { Client } from '@/app/features/dashboard/types';
 import { BackButton } from '@/app/components/ui/BackButton';
 import { useAlert } from '@/app/AlertProvider';
 
+
+
+
+
+
 type CourseWithRelations = MedicationCourse & {
   client?: Client | null;
 };
 
 export default function RestockPage() {
+  const queryClient = useQueryClient();
   const [courses, setCourses] = useState<CourseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
 
+  const [restockDate, setRestockDate] = useState(() => {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`; 
+});
+
+
   const {showAlert} = useAlert();
+
 
   // ID of the currently selected course
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
@@ -128,6 +145,9 @@ export default function RestockPage() {
   const handleSelectCourse = (value?: string) => {
     setSelectedId(value);
     setShowForm(false);
+    const d = new Date();
+    setRestockDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+
 
     const course = filteredCourses.find((c) => String(c.id) === value);
     if (!course) return;
@@ -145,22 +165,28 @@ export default function RestockPage() {
 
     const id = selectedCourse.id;
 
+
     const payload: Partial<
       Pick<
         MedicationCourse,
-        'pack_size' | 'packs_on_hand' | 'loose_units' | 'opening_units'
+        'pack_size' | 'packs_on_hand' | 'loose_units' | 'opening_units' | 'restock_date'
       >
     > = {
       pack_size: parseNumberOrUndefined(packSize),
       packs_on_hand: parseNumberOrUndefined(packsOnHand),
       loose_units: parseNumberOrUndefined(looseUnits),
       opening_units: parseNumberOrUndefined(openingUnits),
+      restock_date: restockDate || null,
     };
 
-    const invalid = Object.values(payload).some((v) => {
-      if (v === undefined || v === null) return false;
-      return Number.isNaN(v) || v < 0;
-    });
+
+    const invalid =
+      [packSize, packsOnHand, looseUnits, openingUnits].some((val) => {
+        if (val.trim() === '') return false;
+
+    const num = Number(val);
+      return Number.isNaN(num) || num < 0;
+      });
 
     if (invalid) {
       if (typeof window !== 'undefined') {
@@ -175,12 +201,10 @@ export default function RestockPage() {
 
     try {
       setSaving(true);
-
       await fetcher(`/api/courses/${id}/restock`, {
         method: 'PATCH',
         body: payload,
       });
-
       if (typeof window !== 'undefined') {
         showAlert({
           title: 'Medication Restocked',
@@ -189,6 +213,9 @@ export default function RestockPage() {
         });
         
       }
+      await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      await queryClient.invalidateQueries({ queryKey: ["courses"] });
+
 
       // update local list
       setCourses((prev) =>
@@ -405,6 +432,22 @@ export default function RestockPage() {
                 placeholder="Optional – if you use it"
               />
             </div>
+            {/* Restock date */}
+            <div className="mb-3">
+              <label className="mb-1 block text-sm text-neutral-700">
+                Restock date
+              </label>
+              <input
+                type="date"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
+                value={restockDate}
+                onChange={(e) => setRestockDate(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                Used to recalculate half-date and runout date from this day.
+              </p>
+            </div>
+
 
             <button
               type="button"

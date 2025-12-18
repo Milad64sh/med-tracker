@@ -10,6 +10,10 @@ export function useDashboard() {
   return useQuery({
     queryKey: qk.dashboard,
     queryFn: () => fetcher<DashboardResponse>('/api/dashboard'),
-    refetchInterval: 90_000, // auto-refresh every 90 sec
+    refetchInterval: 90_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
+

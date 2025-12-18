@@ -8,6 +8,7 @@ import { useClients } from '../features/clients/queries';
 import type { Client } from '../features/dashboard/types';
 import { MedicationCard } from '../components/meds/medicationCard';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/hooks/useAuth';
 
 type CourseWithRelations = any; 
 
@@ -35,6 +36,8 @@ export default function MedsPage() {
 
   const { data, isLoading, error, refetch, isFetching } = useCourses();
   const del = useDeleteCourse();
+  const { isAdmin } = useAuth();
+
 
   const {
     data: clientsData,
@@ -75,14 +78,15 @@ export default function MedsPage() {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-neutral-900">Medications</h1>
-
-        <button
-          type="button"
-          onClick={() => router.push('/meds/newMed')}
-          className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
-        >
-          Add
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => router.push('/meds/newMed')}
+            className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600"
+          >
+            Add
+          </button>
+        )}
       </div>
 
       {/* Loading state */}

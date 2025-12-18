@@ -1,6 +1,6 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetcher } from '@/lib/api';
@@ -13,6 +13,10 @@ export default function SignupClient() {
 
   // Invite token from URL: /signup?token=xxxx
   const inviteToken = (searchParams.get('token') || '').trim();
+  const inviteEmail = (searchParams.get('email') || '').trim();
+  
+  useEffect(() => { if (inviteEmail) setEmail(inviteEmail); }, [inviteEmail]);
+
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -179,6 +183,7 @@ export default function SignupClient() {
               autoComplete="email"
               type="email"
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
+              disabled={!!inviteEmail}
             />
           </div>
 

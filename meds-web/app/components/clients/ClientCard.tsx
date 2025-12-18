@@ -5,35 +5,34 @@ import Link from 'next/link';
 import { formatUK } from '@/app/utils/formatUK';
 import type { Client } from '@/app/features/dashboard/types';
 import { useAlert } from '@/app/AlertProvider';
+import { useAuth } from '@/app/hooks/useAuth';
 
 type ClientCardProps = {
   item: Client;
   onDelete: (id: number) => void;
-  onPress?: () => void; // open modal
+  onPress?: () => void;
 };
 
 export function ClientCard({ item, onDelete, onPress }: ClientCardProps) {
+  const { isAdmin } = useAuth();
+  const { showAlert } = useAlert();
+
   const editHref = `/clients/${item.id}/edit`;
-  const {showAlert} = useAlert();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    const name = item.initials ?? 'this client';
+
     showAlert({
       title: 'Confirm delete',
-      message: `Are you sure you want to delete “${name}”? This cannot be undone.`,
+      message: `Are you sure you want to delete “${item.initials ?? 'this client'}”?`,
       variant: 'warning',
       onOk: () => onDelete(item.id),
     });
   };
 
-  const handleCardClick = () => {
-    if (onPress) onPress();
-  };
-
   return (
     <div
-      onClick={handleCardClick}
+      onClick={onPress}
       role={onPress ? 'button' : undefined}
       className="mb-3 rounded-2xl border border-neutral-200 bg-white p-4 cursor-pointer"
     >
@@ -43,39 +42,31 @@ export function ClientCard({ item, onDelete, onPress }: ClientCardProps) {
 
       <div className="mb-3 text-sm">
         <p className="text-neutral-700">
-          DOB:{' '}
-          <span className="font-medium">
-            {formatUK(item.dob) ?? '—'}
-          </span>
+          DOB: <span className="font-medium">{formatUK(item.dob) ?? '—'}</span>
         </p>
         <p className="text-neutral-700">
           Service:{' '}
-          <span className="font-medium">
-            {item.service?.name ?? '—'}
-          </span>
+          <span className="font-medium">{item.service?.name ?? '—'}</span>
         </p>
       </div>
 
-      <div className="flex flex-row gap-3">
-        {/* EDIT button */}
-        <Link href={editHref} onClick={e => e.stopPropagation()}>
-          <button
-            type="button"
-            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 cursor-pointer"
-          >
-            Edit
-          </button>
-        </Link>
+      {/* ADMIN ACTIONS ONLY */}
+      {isAdmin && (
+        <div className="flex flex-row gap-3">
+          <Link href={editHref} onClick={(e) => e.stopPropagation()}>
+            <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600">
+              Edit
+            </button>
+          </Link>
 
-        {/* DELETE button */}
-        <button
-          type="button"
-          onClick={handleDeleteClick}
-          className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 cursor-pointer"
-        >
-          Delete
-        </button>
-      </div>
+          <button
+            onClick={handleDeleteClick}
+            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600"
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

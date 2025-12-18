@@ -25,6 +25,7 @@ export type MedicationCourse = {
   opening_units?: number | null;
   start_date: string;
   half_date?: string | null;
+  restock_date: string | null;
   runout_date?: string | null;
   status?: string | null;
 };

@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ClientController;
@@ -7,57 +8,55 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InviteController;
 
-// AUTH
+// AUTH (public)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
-Route::post('/auth/register', [AuthController::class, 'register']); // invite-only now
+Route::post('/auth/register', [AuthController::class, 'register']);
 
+// Everything below requires a valid Sanctum token
 Route::middleware('auth:sanctum')->group(function () {
+
+    // AUTH (private)
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::match(['put', 'patch'], '/auth/me', [AuthController::class, 'update']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-    Route::post('/invites', [InviteController::class, 'store']); // admin only
+    // DASHBOARD
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    // CLIENTS
+    Route::get('/clients/lookup', [ClientController::class, 'lookup']);
+    Route::get('/clients', [ClientController::class, 'index']);
+    Route::post('/clients', [ClientController::class, 'store']);
+    Route::get('/clients/{client}', [ClientController::class, 'show']);
+    Route::match(['put','patch'], '/clients/{client}', [ClientController::class, 'update']);
+
+    // COURSES
+    Route::get('/courses', [CourseController::class, 'index']);
+    Route::post('/courses', [CourseController::class, 'store']);
+    Route::get('/courses/{course}', [CourseController::class, 'show']);
+    Route::match(['put', 'patch'], '/courses/{course}', [CourseController::class, 'update']);
+    Route::patch('/courses/{course}/restock', [CourseController::class, 'restock']);
+
+    // SERVICES (read-only)
+    Route::get('/services/lookup', [ServiceController::class, 'lookup']);
+    Route::get('/services', [ServiceController::class, 'index']);
+    Route::get('/services/{service}', [ServiceController::class, 'show']);
+
+    // ADMIN-ONLY
+    Route::middleware('admin')->group(function () {
+
+        // invites
+        Route::post('/invites', [InviteController::class, 'store']);
+
+        // services write
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update']);
+        Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+
+        // destructive
+        Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
+        Route::delete('/courses/{course}', [CourseController::class, 'destroy']);
+    });
 });
-
-
-// CLIENT
-Route::post('/clients',[ClientController::class,'store']);
-
-Route::get('/clients',  [ClientController::class, 'index']);
-Route::get('/clients/lookup', [ClientController::class, 'lookup']); // <-- move this up
-Route::get('/clients/{client}', [ClientController::class, 'show']);
-Route::match(['put','patch'], '/clients/{client}', [ClientController::class, 'update']);
-Route::delete('/clients/{client}', [ClientController::class, 'destroy']); 
-
-
-
-// SERVICES
-
-Route::get('/services/lookup', [ServiceController::class, 'lookup']);
-
-Route::get('/services', [ServiceController::class, 'index']);
-Route::post('/services', [ServiceController::class, 'store']);
-Route::get('/services/{service}', [ServiceController::class, 'show']);
-Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update']);
-Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
-
-
-
-// COURSE
-
-Route::get('/courses', [CourseController::class, 'index']);
-Route::post('/courses', [CourseController::class, 'store']);
-Route::get('/courses/{course}', [CourseController::class, 'show']);
-Route::match(['put', 'patch'], '/courses/{course}', [CourseController::class, 'update']); // 👈 NEW
-Route::delete('/courses/{course}', [CourseController::class, 'destroy']);
-
-
-
-// DASHBOARD
-Route::get('/dashboard', [DashboardController::class, 'index']);
-
-// RESTOCK
-
-Route::patch('/courses/{course}/restock', [CourseController::class, 'restock']);
