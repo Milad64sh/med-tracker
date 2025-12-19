@@ -46,7 +46,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     retry: false,
   });
 
-  const adminNavItem = { href: '/admin/invites', label: 'Invite Users' };
+  const adminNavItems = [
+  { href: '/admin/invites', label: 'Invite Users' },
+  { href: '/admin/users', label: 'Users' },
+  { href: '/admin/restocks', label: 'Restock activity' },
+];
 
 
   const initials = getInitials(user?.name ?? null);
@@ -80,20 +84,21 @@ const handleLogout = async () => {
           </div>
 
           <nav className="space-y-1">
-            {user?.is_admin && (
-              <Link href={adminNavItem.href}>
+            {user?.is_admin && adminNavItems.map((item) => (
+              <Link key={item.href} href={item.href}>
                 <button
                   type="button"
                   className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium cursor-pointer ${
-                    pathname === adminNavItem.href || pathname?.startsWith(adminNavItem.href + '/')
+                    pathname === item.href || pathname?.startsWith(item.href + '/')
                       ? 'bg-neutral-900 text-white'
                       : 'text-neutral-700 hover:bg-neutral-100'
                   }`}
                 >
-                  {adminNavItem.label}
+                  {item.label}
                 </button>
               </Link>
-            )}
+            ))}
+
             {navItems.map((item) => {
               const active =
                 pathname === item.href || pathname?.startsWith(item.href + '/');
@@ -227,20 +232,21 @@ const handleLogout = async () => {
                 </div>
 
                 <nav className="space-y-1">
-                  {user?.is_admin && (
-                    <Link href={adminNavItem.href}>
+                  {user?.is_admin && adminNavItems.map((item) => (
+                    <Link key={item.href} href={item.href}>
                       <button
                         type="button"
                         className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium cursor-pointer ${
-                          pathname === adminNavItem.href || pathname?.startsWith(adminNavItem.href + '/')
+                          pathname === item.href || pathname?.startsWith(item.href + '/')
                             ? 'bg-neutral-900 text-white'
                             : 'text-neutral-700 hover:bg-neutral-100'
                         }`}
                       >
-                        {adminNavItem.label}
+                        {item.label}
                       </button>
                     </Link>
-                  )}
+                  ))}
+
                   {navItems.map((item) => {
                     const active =
                       pathname === item.href ||

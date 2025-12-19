@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCourseRequest;
 use App\Http\Resources\CourseResource;
 use App\Models\MedicationCourse;
+use App\Models\RestockLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,37 +98,63 @@ class CourseController extends Controller
      * PATCH /api/courses/{course}/restock
      * Partial update: only stock fields (pack size, packs on hand, etc.).
      */
-    public function restock(Request $request, MedicationCourse $course)
-    {
-        // Only validate stock-related fields
-        $data = $request->validate([
-            'pack_size'     => ['nullable', 'integer', 'min:0'],
-            'packs_on_hand' => ['nullable', 'integer', 'min:0'],
-            'loose_units'   => ['nullable', 'integer', 'min:0'],
-            'opening_units' => ['nullable', 'integer', 'min:0'],
-            'restock_date'  => ['nullable', 'date'],
+
+public function restock(Request $request, MedicationCourse $course)
+{
+    $data = $request->validate([
+        'pack_size'     => ['nullable', 'integer', 'min:0'],
+        'packs_on_hand' => ['nullable', 'integer', 'min:0'],
+        'loose_units'   => ['nullable', 'integer', 'min:0'],
+        'opening_units' => ['nullable', 'integer', 'min:0'],
+        'restock_date'  => ['nullable', 'date'],
+    ]);
+
+    $base = !empty($data['restock_date'])
+        ? Carbon::parse($data['restock_date'], 'Europe/London')
+        : null;
+
+    return DB::transaction(function () use ($request, $course, $data, $base) {
+
+        // snapshot BEFORE anything changes
+        $before = $course->only([
+            'pack_size', 'packs_on_hand', 'loose_units', 'opening_units', 'restock_date'
         ]);
 
-        // Merge with existing values so computeDates has full context
+        // Merge with current values so computeDates has full context
         $merged = array_merge($course->toArray(), $data);
-
-        $base = !empty($data['restock_date'])
-            ? Carbon::parse($data['restock_date'], 'Europe/London')
-            : null;
 
         // Recompute runout_date / half_date based on new stock
         $merged = $this->computeDates($merged, $base);
 
-        $course = DB::transaction(function () use ($course, $merged) {
-            $course->update($merged);
+        // Apply updates
+        $course->update($merged);
 
-            $this->resetSchedulesForCourse($course);
+        // Reset schedules after update
+        $this->resetSchedulesForCourse($course);
 
-            return $course->load(['client.service', 'schedules']);
-        });
+        // Reload (optional but helps keep consistent snapshot)
+        $course->refresh();
 
-        return new CourseResource($course);
-    }
+        // snapshot AFTER update
+        $after = $course->only([
+            'pack_size', 'packs_on_hand', 'loose_units', 'opening_units', 'restock_date'
+        ]);
+
+        // Write audit log (option 1: before/after)
+        RestockLog::create([
+            'user_id'     => $request->user()->id,
+            'course_id'   => $course->id,
+            'client_id'   => $course->client_id ?? null,
+            'action'      => 'restock',
+            'before'      => $before,
+            'after'       => $after,
+            'restock_date'=> $course->restock_date,
+        ]);
+
+        return new CourseResource($course->load(['client.service', 'schedules']));
+    });
+}
+
 
 
     // -----------------------
