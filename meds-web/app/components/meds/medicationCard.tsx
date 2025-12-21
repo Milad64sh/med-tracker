@@ -2,6 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+
 
 import type { Client } from '@/app/features/dashboard/types';
 import type { MedicationCourse } from '@/app/features/courses/types';
@@ -96,12 +98,12 @@ export function MedicationCard({
       {/* Actions */}
       <div className="flex flex-wrap gap-3">
         {/* Edit */}
-        <Link href={editHref}>
+        <Link href={editHref} aria-label={`Edit ${item.name ?? 'medication'}`}>
           <button
             type="button"
-            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 cursor-pointer"
+            className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-300 cursor-pointer"
           >
-            Edit
+            <PencilSquareIcon className="h-5 w-5" />
           </button>
         </Link>
 
@@ -121,9 +123,10 @@ export function MedicationCard({
           <button
             type="button"
             onClick={handleDeleteClick}
-            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 cursor-pointer"
+            aria-label={`Delete ${item.name ?? 'medication'}`}
+            className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-300 cursor-pointer"
           >
-            Delete
+            <TrashIcon className="h-5 w-5" />
           </button>
         )}
       </div>

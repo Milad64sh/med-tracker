@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAlert } from '@/app/AlertProvider';
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 type ServiceCardProps = {
   item: {
@@ -56,22 +57,23 @@ export function ServiceCard({ item, onDelete, onPress }: ServiceCardProps) {
       <div className="flex flex-row gap-3">
         {/* EDIT */}
         <Link href={editHref} onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 cursor-pointer"
-          >
-            Edit
-          </button>
+            <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-300 cursor-pointer"
+                      >
+                        <PencilSquareIcon className="h-5 w-5" />
+                      </button>
         </Link>
 
         {/* DELETE */}
-        <button
-          type="button"
-          onClick={handleDeleteClick}
-          className="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 cursor-pointer"
-        >
-          Delete
-        </button>
+
+          <button
+                      type="button"
+                      onClick={handleDeleteClick}
+                      className="inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-300 cursor-pointer"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
       </div>
     </div>
   );

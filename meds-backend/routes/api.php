@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RestockLogController;
+use App\Http\Controllers\Api\AlertsController;
 
 // AUTH (public)
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -18,6 +19,7 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 
 // Everything below requires a valid Sanctum token
 Route::middleware('auth:sanctum')->group(function () {
+
     // AUTH (private)
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::match(['put', 'patch'], '/auth/me', [AuthController::class, 'update']);
@@ -26,6 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    // ALERTS
+    Route::post('/alerts/email-gp', [AlertsController::class, 'emailGp']);
     // CLIENTS
     Route::get('/clients/lookup', [ClientController::class, 'lookup']);
     Route::get('/clients', [ClientController::class, 'index']);

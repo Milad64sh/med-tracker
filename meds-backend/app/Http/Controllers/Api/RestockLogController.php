@@ -17,22 +17,22 @@ public function index(Request $request)
         ])
         ->orderByDesc('created_at');
 
-    if ($request->filled('user_name')) {
-        $name = $request->input('user_name');
+if ($request->filled('user_name')) {
+    $name = mb_strtolower($request->input('user_name'));
 
-        $q->whereHas('user', function ($uq) use ($name) {
-            $uq->where('name', 'ILIKE', '%' . $name . '%');
-        });
-    }
-
-
-    if ($request->filled('client_initials')) {
-    $initials = $request->input('client_initials');
-
-    $q->whereHas('client', function ($cq) use ($initials) {
-        $cq->where('initials', 'ILIKE', '%' . $initials . '%');
+    $q->whereHas('user', function ($uq) use ($name) {
+        $uq->whereRaw('LOWER(name) LIKE ?', ['%' . $name . '%']);
     });
 }
+
+if ($request->filled('client_initials')) {
+    $initials = mb_strtolower($request->input('client_initials'));
+
+    $q->whereHas('client', function ($cq) use ($initials) {
+        $cq->whereRaw('LOWER(initials) LIKE ?', ['%' . $initials . '%']);
+    });
+}
+
 
     // date range (created_at)
     if ($request->filled('date_from')) {
