@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useAlert } from '@/app/AlertProvider';
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 export type UserRow = {
   id: number;
@@ -37,19 +38,23 @@ export function UserCard({
 
   const isSelf = currentUserId != null && user.id === currentUserId;
 
-  const handleDelete = () => {
-    showAlert({
-      title: 'Confirm delete',
-      message: `Delete "${user.name}" (${user.email})? This cannot be undone.`,
-      variant: 'warning',
-      onOk: () => onDelete(user.id),
-    });
-  };
+const handleDelete = (e?: React.MouseEvent) => {
+  e?.preventDefault();
+  e?.stopPropagation();
+
+  // then re-enable showAlert after you confirm the click fires
+  showAlert({
+    title: 'Confirm delete',
+    message: `Delete "${user.name}" (${user.email})? This cannot be undone.`,
+    variant: 'warning',
+    onOk: () => onDelete(user.id),
+  });
+};
+
 
   const handleToggle = () => {
     const next = !user.is_admin;
 
-    // Best practice: don’t allow admin to remove their own admin by mistake
     if (isSelf && next === false) {
       showAlert({
         title: 'Not allowed',
@@ -61,6 +66,12 @@ export function UserCard({
 
     onToggleAdmin(user.id, next);
   };
+
+  const iconBtnBase =
+    'inline-flex items-center justify-center rounded-xl border border-neutral-200 bg-white p-2 text-neutral-500 transition ' +
+    'hover:bg-neutral-50 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-neutral-300';
+
+  const iconBtnDisabled = 'opacity-60 cursor-not-allowed hover:bg-white hover:text-neutral-500';
 
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-4">
@@ -96,7 +107,9 @@ export function UserCard({
             className={[
               'relative inline-flex h-6 w-11 items-center rounded-full transition',
               user.is_admin ? 'bg-emerald-500' : 'bg-neutral-300',
-              busy || (isSelf && user.is_admin) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+              busy || (isSelf && user.is_admin)
+                ? 'opacity-60 cursor-not-allowed'
+                : 'cursor-pointer',
             ].join(' ')}
             aria-pressed={user.is_admin}
             aria-label={`Toggle admin for ${user.email}`}
@@ -112,25 +125,37 @@ export function UserCard({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="relative z-20 flex items-center gap-2">
+          {/* Edit icon */}
           <button
             type="button"
-            onClick={() => onEdit(user)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit(user);
+            }}
             disabled={busy}
-            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600 disabled:opacity-60"
+            aria-label={`Edit ${user.email}`}
+            title="Edit user"
+            className={[iconBtnBase, busy ? iconBtnDisabled : 'cursor-pointer'].join(' ')}
           >
-            Edit
+            <PencilSquareIcon className="h-5 w-5" />
+          </button>
+          {/* Delete icon */}
+          <button
+            type="button"
+            onClick={handleDelete}  
+            disabled={busy || isSelf}
+            aria-label={`Delete ${user.email}`}
+            title={isSelf ? "You can't delete your own account" : 'Delete user'}
+            className={[
+              iconBtnBase,
+              busy || isSelf ? iconBtnDisabled : 'cursor-pointer',
+            ].join(' ')}
+          >
+            <TrashIcon className="h-5 w-5" />
           </button>
 
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={busy || isSelf}
-            className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"
-            title={isSelf ? "You can't delete your own account" : 'Delete user'}
-          >
-            Delete
-          </button>
         </div>
       </div>
     </div>

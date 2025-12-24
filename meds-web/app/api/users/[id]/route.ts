@@ -47,3 +47,28 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const data = await safeJson(res);
   return NextResponse.json(data ?? null, { status: res.status });
 }
+
+export async function DELETE(req: Request, ctx: Ctx) {
+  const token = await getTokenFromCookie();
+  if (!token) return NextResponse.json({ message: "Unauthenticated" }, { status: 401 });
+
+  const { id } = await ctx.params;
+  if (!id || id === "undefined") {
+    return NextResponse.json({ message: "Invalid user id", id }, { status: 400 });
+  }
+
+  const res = await fetch(
+    backendUrl(`/api/users/${encodeURIComponent(id)}${getQuery(req)}`),
+    {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    }
+  );
+
+  const data = await safeJson(res);
+  return NextResponse.json(data ?? null, { status: res.status });
+}
