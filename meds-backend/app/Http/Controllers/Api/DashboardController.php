@@ -80,7 +80,8 @@ class DashboardController extends Controller
                 $client  = $c->client;
                 $service = $client ? $client->service : null;
 
-                $clientName  = $client?->name ?? $client?->initials ?? 'Unknown client';
+                $clientName = $client?->name ?? 'Unknown client';
+
                 $serviceName = $service?->name ?? $service?->label ?? 'Unknown service';
                 $medicationName = $c->medication_name ?? $c->name ?? null;
 
@@ -93,7 +94,9 @@ class DashboardController extends Controller
                     'client'         => [
                         'id'       => $client ? (int) $client->id : null,
                         'name'     => $clientName,
-                        'gp_email' => $client?->gp_email,       // 👈 here
+                        'initials' => $client?->initials,                   
+                        'dob'      => optional($client?->dob)->toDateString(),
+                        'gp_email' => $client?->gp_email,      
                         'service'  => [
                             'id'   => $service ? (int) $service->id : null,
                             'name' => $serviceName,

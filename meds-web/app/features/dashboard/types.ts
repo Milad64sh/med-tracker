@@ -43,11 +43,10 @@ export type AlertRow = {
   client: {
     id: number | null;
     name: string;
-    gp_email: string | null; 
-    service: {
-      id: number | null;
-      name: string;
-    };
+    initials?: string | null;
+    dob?: string | null;
+    gp_email: string | null;
+    service: { id: number | null; name: string };
   };
 };
 

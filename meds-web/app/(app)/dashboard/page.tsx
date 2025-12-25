@@ -78,7 +78,8 @@ export default function DashboardPage() {
         method: 'POST',
         body: {
           gp_email: gpEmail,
-          client_name: group.client.name,
+          client_name: group.client.initials ?? group.client.name,
+          dob: group.client.dob, 
           service_name: group.client.service?.name ?? null,
           medications: group.alerts.map((alert) => ({
             medication: alert.medication,

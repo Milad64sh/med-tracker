@@ -23,10 +23,13 @@ class GpMedicationAlertMail extends Mailable
     /**
      * Build the message.
      */
-    public function build()
-    {
-        return $this
-            ->subject('Medication running low for ' . $this->data['client_name'])
-            ->markdown('emails.meds.gp_alert');
-    }
+public function build()
+{
+    $who = $this->data['client_name'] ?? 'Client';
+
+    return $this
+        ->subject('Repeat prescription request – ' . $who)
+        ->markdown('emails.meds.gp_alert');
+}
+
 }
