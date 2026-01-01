@@ -40,6 +40,8 @@ export type AlertRow = {
   days_remaining?: number | null;
   half_date: string | null;
   runout_date: string | null;
+  ack?: AckInfo;     
+  snooze?: SnoozeInfo;
   client: {
     id: number | null;
     name: string;
@@ -53,4 +55,18 @@ export type AlertRow = {
 export type ClientAlertGroup = {
   client: AlertRow['client'];
   alerts: AlertRow[];
+};
+
+export type AckInfo = {
+  acknowledged_at: string | null; // ISO
+  acknowledged_by: number | null;
+  acknowledged_by_name: string | null;
+  note: string | null;
+};
+
+export type SnoozeInfo = {
+  snoozed_until: string | null; // ISO
+  snoozed_by: number | null;
+  snoozed_by_name: string | null;
+  note: string | null;
 };

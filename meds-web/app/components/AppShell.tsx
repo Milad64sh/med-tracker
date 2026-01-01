@@ -50,6 +50,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   { href: '/admin/invites', label: 'Invite Users' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/restocks', label: 'Restock activity' },
+  { href: '/admin/audit', label: 'Audit' },
 ];
 
 

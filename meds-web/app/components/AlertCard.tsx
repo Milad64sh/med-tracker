@@ -71,9 +71,13 @@ type AlertCardProps = {
   group: ClientAlertGroup;
   onPress?: (group: ClientAlertGroup) => void;
   onEmailPress?: (group: ClientAlertGroup) => void;
+
+  onAcknowledge?: (courseId: number, note?: string | null) => Promise<void> | void;
+  onSnooze?: (courseId: number, untilIso: string, note?: string | null) => Promise<void> | void;
+  onUnsnooze?: (courseId: number) => Promise<void> | void;
 };
 
-export function AlertCard({ group, onPress, onEmailPress }: AlertCardProps) {
+export function AlertCard({ group, onPress, onEmailPress, onAcknowledge, onSnooze, onUnsnooze }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const status = groupStatus(group.alerts);
@@ -98,6 +102,13 @@ export function AlertCard({ group, onPress, onEmailPress }: AlertCardProps) {
       ? `${thisThese} ${medWord} running low for `
       : `${thisThese} ${medWord} OK for `;
 
+  const [now, setNow] = useState<number | null>(null);
+
+  React.useEffect(() => {
+    setNow(Date.now());
+  }, []);
+
+
   const handleToggle = () => {
     setExpanded((prev) => !prev);
     onPress?.(group);
@@ -107,6 +118,29 @@ export function AlertCard({ group, onPress, onEmailPress }: AlertCardProps) {
     event.stopPropagation();
     onEmailPress?.(group);
   };
+
+  function formatDateTime(iso: string | null | undefined) {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function isSnoozed(alert: AlertRow, nowMs: number | null) {
+  const until = alert.snooze?.snoozed_until;
+  if (!until || nowMs == null) return false;
+  return new Date(until).getTime() > nowMs;
+}
+
+
 
   return (
     <div
@@ -138,23 +172,27 @@ export function AlertCard({ group, onPress, onEmailPress }: AlertCardProps) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          {/* Status pill */}
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${theme.pill}`}
+            className={`flex h-6 w-24 items-center justify-center rounded-full text-xs font-semibold ${theme.pill}`}
           >
             {status.toUpperCase()}
           </span>
 
-          {/* Single Email GP button per client (only for low/critical) */}
-          {(status === 'low' || status === 'critical') && !!onEmailPress && (
-            <button
-              type="button"
-              onClick={handleEmailClick}
-              className="rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white"
-            >
-              Email GP
-            </button>
-          )}
+          {/* Email GP button (space always reserved) */}
+          <div className="h-6 w-24">
+            {(status === 'low' || status === 'critical') && !!onEmailPress && (
+              <button
+                type="button"
+                onClick={handleEmailClick}
+                className="flex h-full w-full items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700 transition"
+              >
+                Email GP
+              </button>
+            )}
+          </div>
         </div>
+
       </div>
 
       {/* Expand/collapse arrow */}
@@ -216,14 +254,84 @@ export function AlertCard({ group, onPress, onEmailPress }: AlertCardProps) {
                   </p>
                 </div>
 
-                <div className="flex flex-col items-end text-[11px] text-neutral-700">
+                <div className="flex flex-col items-end gap-1 text-[11px] text-neutral-700">
                   <span>{unitsLabel}</span>
+
                   {pillText && (
-                    <span
-                      className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${pillClass}`}
-                    >
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${pillClass}`}>
                       {pillText}
                     </span>
+                  )}
+
+                  {/* Ack / Snooze UI (only for low/critical) */}
+                  {(derivedStatus === 'low' || derivedStatus === 'critical') && (
+                    <div className="mt-1 flex flex-col items-end gap-1">
+                      {/* Acknowledged label */}
+                      {alert.ack?.acknowledged_at ? (
+                        <p className="max-w-[180px] text-right text-[10px] text-neutral-600">
+                          Acknowledged by {alert.ack.acknowledged_by_name ?? '—'} •{' '}
+                          {formatDateTime(alert.ack.acknowledged_at) ?? '—'}
+                        </p>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAcknowledge?.(alert.course_id);
+                          }}
+                          className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-semibold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer"
+                        >
+                          Acknowledge
+                        </button>
+                      )}
+
+                      {/* Snooze / Unsnooze */}
+                      {isSnoozed(alert, now) ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <p className="text-[10px] text-neutral-600">
+                            Snoozed until {formatDateTime(alert.snooze?.snoozed_until) ?? '—'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onUnsnooze?.(alert.course_id);
+                            }}
+                            className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-semibold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer"
+                          >
+                            Unsnooze
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // quick snooze 24h
+                              const until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+                              onSnooze?.(alert.course_id, until);
+                            }}
+                            className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-semibold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer"
+                          >
+                            Snooze 24h
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // quick snooze 7d
+                              const until = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+                              onSnooze?.(alert.course_id, until);
+                            }}
+                            className="rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] font-semibold text-neutral-800 hover:bg-neutral-100 transition cursor-pointer"
+                          >
+                            7d
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

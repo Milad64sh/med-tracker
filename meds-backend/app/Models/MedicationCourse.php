@@ -29,7 +29,9 @@ class MedicationCourse extends Model
         'daily_use'=>'float',
         'start_date'=>'date',
         'half_date'=>'date',
-        'runout_date'=>'date'
+        'runout_date'=>'date',
+        'acknowledged_at' => 'datetime',
+        'snoozed_until'   => 'datetime',
     ];
     public function client()
     { 
@@ -45,6 +47,16 @@ class MedicationCourse extends Model
     public function schedules()
      {
         return $this->hasMany(Schedule::class, 'course_id');
+    }
+
+    public function ackUser()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'acknowledged_by');
+    }
+
+    public function snoozeUser()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'snoozed_by');
     }
 
 }

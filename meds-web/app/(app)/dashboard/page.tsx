@@ -105,6 +105,50 @@ export default function DashboardPage() {
     }
   };
 
+  const handleAcknowledge = async (courseId: number, note?: string | null) => {
+  try {
+    await fetcher(`/api/alerts/${courseId}/acknowledge`, {
+      method: 'POST',
+      body: { note: note ?? null },
+    });
+    await refetch();
+  } catch (e: any) {
+    console.log('Acknowledge error', e);
+    window.alert(e?.message || 'Could not acknowledge. Please try again.');
+  }
+};
+
+const handleSnooze = async (
+  courseId: number,
+  untilIso: string,
+  note?: string | null
+) => {
+  try {
+    await fetcher(`/api/alerts/${courseId}/snooze`, {
+      method: 'POST',
+      body: { until: untilIso, note: note ?? null },
+    });
+    await refetch();
+  } catch (e: any) {
+    console.log('Snooze error', e);
+    window.alert(e?.message || 'Could not snooze. Please try again.');
+  }
+};
+
+const handleUnsnooze = async (courseId: number) => {
+  try {
+    await fetcher(`/api/alerts/${courseId}/unsnooze`, {
+      method: 'POST',
+      body: {},
+    });
+    await refetch();
+  } catch (e: any) {
+    console.log('Unsnooze error', e);
+    window.alert(e?.message || 'Could not unsnooze. Please try again.');
+  }
+};
+
+
   return (
     <AppShell>
       {/* Outer wrapper */}
@@ -223,6 +267,9 @@ export default function DashboardPage() {
                     // later: navigate to a detailed client/meds page if needed
                   }}
                   onEmailPress={handleEmailPress}
+                  onAcknowledge={handleAcknowledge}
+                  onSnooze={handleSnooze}
+                  onUnsnooze={handleUnsnooze}
                 />
               ))}
             </div>

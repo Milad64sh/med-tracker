@@ -54,6 +54,8 @@ const handleDelete = (e?: React.MouseEvent) => {
 
   const handleToggle = () => {
     const next = !user.is_admin;
+    console.log({ cardUserId: user.id, currentUserId, isSelf, is_admin: user.is_admin });
+
 
     if (isSelf && next === false) {
       showAlert({

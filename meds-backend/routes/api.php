@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\InviteController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\RestockLogController;
 use App\Http\Controllers\Api\AlertsController;
+use App\Http\Controllers\Api\AuditLogController;
 
 // AUTH (public)
 Route::post('/auth/login', [AuthController::class, 'login']);
@@ -67,5 +68,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::patch('/users/{user}/admin', [UserController::class, 'setAdmin']);
+
+        // AUDIT
+        Route::get('/audit-logs', [AuditLogController::class, 'index']);
+
+        //PDF
+        Route::get('/audit-logs/{auditLog}/pdf', [AuditLogController::class, 'pdf']);
+
     });
+
+    // ALERT WORKFLOW
+    Route::post('/alerts/{course}/acknowledge', [AlertsController::class, 'acknowledge']);
+    Route::post('/alerts/{course}/snooze', [AlertsController::class, 'snooze']);
+    Route::post('/alerts/{course}/unsnooze', [AlertsController::class, 'unsnooze']);
+
 });

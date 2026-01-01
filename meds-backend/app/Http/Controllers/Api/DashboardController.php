@@ -66,7 +66,7 @@ class DashboardController extends Controller
 
         // Top urgent alerts
         $alerts = MedicationCourse::query()
-            ->with(['client.service'])
+            ->with(['client.service', 'ackUser', 'snoozeUser'])
             ->select('*')
             ->addSelect(DB::raw("$daysExpr as days_remaining"))
             ->addSelect(DB::raw("$unitsExpr as units_remaining"))
@@ -84,6 +84,12 @@ class DashboardController extends Controller
 
                 $serviceName = $service?->name ?? $service?->label ?? 'Unknown service';
                 $medicationName = $c->medication_name ?? $c->name ?? null;
+                $ackAt = $c->acknowledged_at?->toISOString();
+                $ackByName = $c->ackUser?->name;
+
+                $snoozedUntil = $c->snoozed_until?->toISOString();
+                $snoozedByName = $c->snoozeUser?->name;
+
 
                 return [
                     'course_id'      => (int) $c->id,
@@ -102,6 +108,19 @@ class DashboardController extends Controller
                             'name' => $serviceName,
                         ],
                     ],
+                    'ack' => [
+                        'acknowledged_at' => $ackAt,
+                        'acknowledged_by' => $c->acknowledged_by ? (int) $c->acknowledged_by : null,
+                        'acknowledged_by_name' => $ackByName,
+                        'note' => $c->ack_note,
+                        ],
+                        'snooze' => [
+                        'snoozed_until' => $snoozedUntil,
+                        'snoozed_by' => $c->snoozed_by ? (int) $c->snoozed_by : null,
+                        'snoozed_by_name' => $snoozedByName,
+                        'note' => $c->snooze_note,
+                    ],
+
                     'status'          => $this->statusFromDays($days),
                     'units_remaining' => $units,
                 ];
@@ -125,15 +144,20 @@ class DashboardController extends Controller
     public function emailGp(Request $request)
     {
         $data = $request->validate([
-            'gp_email'        => ['required', 'email'],
-            'client_name'     => ['required', 'string', 'max:255'],
-            'service_name'    => ['nullable', 'string', 'max:255'],
-            'medication'      => ['required', 'string', 'max:255'],
-            'status'          => ['required', 'string', 'max:50'],
-            'units_remaining' => ['nullable'],
-            'half_date'       => ['nullable', 'string', 'max:50'],
-            'runout_date'     => ['nullable', 'string', 'max:50'],
-        ]);
+    'gp_email'     => ['required', 'email'],
+    'client_name'  => ['required', 'string', 'max:255'],
+    'dob'          => ['required', 'string', 'max:50'], 
+    'service_name' => ['nullable', 'string', 'max:255'],
+
+    'medications'  => ['required', 'array', 'min:1'],
+    'medications.*.medication'      => ['required', 'string', 'max:255'],
+    'medications.*.status'          => ['nullable', 'string', 'max:50'],
+    'medications.*.units_remaining' => ['nullable'],
+    'medications.*.days_remaining'  => ['nullable'],
+    'medications.*.half_date'       => ['nullable', 'string', 'max:50'],
+    'medications.*.runout_date'     => ['nullable', 'string', 'max:50'],
+]);
+
 
 
         try {
