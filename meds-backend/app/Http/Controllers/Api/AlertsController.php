@@ -16,9 +16,11 @@ public function emailGp(Request $request)
 {
     $data = $request->validate([
         'gp_email' => ['required', 'email'],
-        'client_name' => ['required', 'string'],   // you're using TS here (initials), keep name as-is
+        'client_id' => ['required', 'integer', 'exists:clients,id'],
+        'client_name' => ['required', 'string'],
         'service_name' => ['nullable', 'string'],
-        'dob' => ['required', 'string'],           // add this in frontend (or make nullable if you truly don't have it)
+        'dob' => ['nullable', 'string'],
+
         'medications' => ['required', 'array', 'min:1'],
         'medications.*.medication' => ['required', 'string'],
         'medications.*.units_remaining' => ['nullable'],
@@ -27,10 +29,47 @@ public function emailGp(Request $request)
         'medications.*.status' => ['nullable', 'string'],
     ]);
 
-    Mail::to($data['gp_email'])->send(new GpMedicationAlertMail($data));
+    try {
+        Mail::to($data['gp_email'])->send(new GpMedicationAlertMail($data));
 
-    return response()->json(['ok' => true]);
+        Audit::log(
+            $request->user()?->id,
+            'gp.email.sent',
+            'Client',
+            (int) $data['client_id'],
+            [
+                'gp_email' => $data['gp_email'],
+                'client_name' => $data['client_name'],
+                'service_name' => $data['service_name'] ?? null,
+                'dob_provided' => !empty($data['dob']),
+                'medications_count' => count($data['medications']),
+            ],
+            $request
+        );
+
+        return response()->json(['ok' => true]);
+    } catch (\Throwable $e) {
+        Audit::log(
+            $request->user()?->id,
+            'gp.email.failed',
+            'Client',
+            (int) ($data['client_id'] ?? 0),
+            [
+                'gp_email' => $data['gp_email'] ?? null,
+                'client_name' => $data['client_name'] ?? null,
+                'service_name' => $data['service_name'] ?? null,
+                'dob_provided' => !empty($data['dob']),
+                'medications_count' => isset($data['medications']) ? count($data['medications']) : null,
+                'error' => $e->getMessage(),
+            ],
+            $request
+        );
+
+        // return a proper API error
+        return response()->json(['message' => 'Failed to send GP email'], 500);
+    }
 }
+
 
     // POST /alerts/{course}/acknowledge
     public function acknowledge(Request $request, MedicationCourse $course)

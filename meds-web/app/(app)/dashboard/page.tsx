@@ -62,6 +62,7 @@ export default function DashboardPage() {
    * Send a single email per client, containing all meds in the group.
    */
   const handleEmailPress = async (group: ClientAlertGroup) => {
+    const client: any = group.client as any;
     const gpEmail = (group.client as any)?.gp_email;
 
     if (!gpEmail) {
@@ -73,13 +74,22 @@ export default function DashboardPage() {
       return;
     }
 
+    const clientId = client?.id;
+    if (!clientId) {
+      if (typeof window !== 'undefined') {
+        window.alert('Client ID is missing. Please refresh and try again.');
+      }
+      return;
+    }
+
     try {
       await fetcher('/api/alerts/email-gp', {
         method: 'POST',
         body: {
           gp_email: gpEmail,
+          client_id: clientId,
           client_name: group.client.initials ?? group.client.name,
-          dob: group.client.dob, 
+          dob: client?.dob ?? 'Unknown', 
           service_name: group.client.service?.name ?? null,
           medications: group.alerts.map((alert) => ({
             medication: alert.medication,

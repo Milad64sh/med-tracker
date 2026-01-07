@@ -23,6 +23,9 @@ class Audit
             'metadata'      => $metadata ?: null,
             'ip_address'    => $request?->ip(),
             'user_agent'    => $request?->userAgent(),
+            'http_method'   => $request?->method(),
+            'path'          => $request?->path(),
+            'full_url'      => $request ? $request->fullUrl() : null,
         ]);
     }
 }
