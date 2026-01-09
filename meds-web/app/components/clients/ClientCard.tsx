@@ -41,6 +41,10 @@ export function ClientCard({ item, onDelete, onPress }: ClientCardProps) {
         {item.initials ?? '—'}
       </p>
 
+      <p className="mb-2 text-sm text-neutral-600">
+        {item.client_name || '—'}
+      </p>
+
       <div className="mb-3 text-sm">
         <p className="text-neutral-700">
           DOB: <span className="font-medium">{formatUK(item.dob) ?? '—'}</span>

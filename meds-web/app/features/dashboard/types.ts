@@ -22,6 +22,7 @@ export type DashboardResponse = {
 export type Client = {
   id: number;
   initials: string | null;
+  client_name?: string | null;
   dob?: string | null; // "YYYY-MM-DD"
   service?: { id: number; name: string } | null;
   gp_email?: string | null;

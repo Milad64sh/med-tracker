@@ -12,9 +12,9 @@ class ClientResource extends JsonResource
         return [
             'id'         => $this->id,
             'initials'   => $this->initials,
-            'dob'        => optional($this->dob)->toDateString(), // 'YYYY-MM-DD'
+            'client_name' => $this->client_name,
+            'dob'        => optional($this->dob)->toDateString(), 
             'gp_email'   => $this->gp_email,
-
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'courses'    => CourseResource::collection($this->whenLoaded('courses')),

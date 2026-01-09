@@ -18,6 +18,10 @@ import { useAlert } from '@/app/AlertProvider';
 // ---- Schema ----
 const schema = z.object({
   initials: z.string().min(1, 'Initials are required'),
+  client_name: z
+    .string()
+    .max(255, 'Max 255 characters')
+    .optional(),
   dob: z
     .string()
     .optional()
@@ -38,6 +42,7 @@ type ShowClientResponse = {
   data: {
     id: number;
     initials: string;
+    client_name: string | null;
     dob: string | null;
     gp_email: string | null;
     service: { id: number | null; name?: string | null } | null;
@@ -61,6 +66,7 @@ export default function EditClientPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       initials: '',
+      client_name: '',
       dob: '',
       service_id: undefined,
       gp_email: '',
@@ -101,6 +107,7 @@ export default function EditClientPage() {
         const res = await fetcher<ShowClientResponse>(`/api/clients/${id}`);
         reset({
           initials: res.data?.initials ?? '',
+          client_name: res.data?.client_name ?? '',
           dob: res.data?.dob ?? '',
           service_id: res.data?.service?.id ?? undefined,
           gp_email: res.data?.gp_email ?? '',
@@ -120,11 +127,13 @@ export default function EditClientPage() {
   const onSubmit = async (form: FormData) => {
     try {
       const gpEmail = form.gp_email?.trim() || null;
+      const clientName = form.client_name?.trim() || null;
 
       await fetcher(`/api/clients/${id}`, {
         method: 'PUT',
         body: {
           initials: form.initials.trim(),
+          client_name: clientName,
           dob: form.dob || null,
           service_id: form.service_id ?? null,
           gp_email: gpEmail,
@@ -172,6 +181,15 @@ export default function EditClientPage() {
             name="initials"
             label="Initials"
             placeholder="e.g., JS"
+          />
+          
+          {/* Client Name */}
+          <InputField
+            control={control}
+            errors={errors}
+            name="client_name"
+            label="Client name (optional)"
+            placeholder="e.g., John Smith"
           />
 
           {/* GP Email */}

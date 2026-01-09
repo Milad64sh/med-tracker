@@ -17,6 +17,10 @@ import { useAlert } from '@/app/AlertProvider';
 // ---- Zod schema ----
 const schema = z.object({
   initials: z.string().min(1, 'Initials required'),
+  client_name: z
+    .string()
+    .max(255, 'Max 255 characters')
+    .optional(),
   dob: z
     .string()
     .min(1, 'Date of birth required')
@@ -43,6 +47,7 @@ export default function NewClientPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       initials: '',
+      client_name: '',
       dob: '',
       gp_email: '',
     },
@@ -89,9 +94,11 @@ export default function NewClientPage() {
     }
 
     const gpEmail = form.gp_email?.trim() || null;
+    const clientName = form.client_name?.trim() || null;
 
     const payload = {
       initials: form.initials.trim(),
+      client_name: clientName,
       dob: form.dob, // already YYYY-MM-DD from <input type="date">
       gp_email: gpEmail,
       service_id: serviceIdNum,
@@ -193,6 +200,13 @@ export default function NewClientPage() {
         name="initials"
         label="Initials"
         placeholder="e.g., JS"
+        />
+        <InputField
+          control={control}
+          errors={errors}
+          name="client_name"
+          label="Client name (optional)"
+          placeholder="e.g., John Smith"
         />
 
         <DobField control={control} errors={errors} />

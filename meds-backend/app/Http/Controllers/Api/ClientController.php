@@ -35,7 +35,7 @@ class ClientController extends Controller
     public function lookup()
     {
         return Client::with('service:id,name')
-            ->select('id', 'initials', 'dob', 'gp_email', 'service_id')
+            ->select('id', 'initials', 'client_name', 'dob', 'gp_email', 'service_id')
             ->orderBy('initials')
             ->get();
     }
@@ -45,6 +45,7 @@ class ClientController extends Controller
                 // dd($req->all());
         $data = $req->validate([
             'initials'   => ['required','string','max:50'],
+            'client_name'  => ['nullable','string','max:255'],
             'dob'        => ['nullable','date'],
             'service_id' => ['nullable','integer','exists:services,id'],
             'gp_email'   => ['nullable','email','max:255'],

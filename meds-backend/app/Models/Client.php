@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Client extends Model
 {
-    protected $fillable = ['initials', 'dob', 'gp_email', 'service_id'];
+    protected $fillable = ['initials', 'client_name',  'dob', 'gp_email', 'service_id'];
 
     protected $casts = [
         'dob' => 'date',
