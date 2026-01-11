@@ -15,43 +15,53 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Compute days_remaining in Postgres (server-side so RN just renders)
-        $daysExpr = <<<SQL
-            CASE
-            WHEN runout_date IS NOT NULL
-                THEN GREATEST((runout_date::date - CURRENT_DATE), 0)
-            WHEN daily_use > 0
-                THEN CEIL(
-                GREATEST(
-                    (pack_size * packs_on_hand) + COALESCE(loose_units, 0),
-                    opening_units
-                ) / NULLIF(daily_use, 0)
-                )
-            ELSE NULL
-            END
-        SQL;
+        /**
+         * Single source of truth:
+         * - Compute units_remaining first
+         * - Derive days_remaining from units_remaining and daily_use
+         * - Derive runout_date from days_remaining
+         */
 
-        // Compute remaining units
+        // Compute remaining units (live countdown)
         $unitsExpr = <<<SQL
             CASE
-            WHEN start_date IS NOT NULL AND daily_use > 0 THEN
-                GREATEST(
-                GREATEST(
-                    (pack_size * packs_on_hand) + COALESCE(loose_units, 0),
-                    opening_units
-                )
-                - (daily_use * GREATEST((CURRENT_DATE - start_date::date), 0)),
-                0
-                )
-            ELSE
-                GREATEST(
-                (pack_size * packs_on_hand) + COALESCE(loose_units, 0),
-                opening_units
-                )
+                WHEN start_date IS NOT NULL AND daily_use > 0 THEN
+                    GREATEST(
+                        GREATEST(
+                            (pack_size * packs_on_hand) + COALESCE(loose_units, 0),
+                            opening_units
+                        )
+                        - (daily_use * GREATEST((CURRENT_DATE - start_date::date), 0)),
+                        0
+                    )
+                ELSE
+                    GREATEST(
+                        (pack_size * packs_on_hand) + COALESCE(loose_units, 0),
+                        opening_units
+                    )
             END
         SQL;
 
-        // KPI counts
+        // Derive days_remaining from units_remaining (prevents mismatch)
+        // Use CEIL so if there are any units left today, it counts as time remaining.
+        $daysExpr = <<<SQL
+            CASE
+                WHEN daily_use > 0 THEN
+                    CEIL( ($unitsExpr) / NULLIF(daily_use, 0) )
+                ELSE NULL
+            END
+        SQL;
+
+        // Derive runout_date from derived days_remaining (prevents stale runout_date column)
+        $runoutExpr = <<<SQL
+            CASE
+                WHEN ($daysExpr) IS NOT NULL THEN
+                    (CURRENT_DATE + (($daysExpr) * INTERVAL '1 day'))::date
+                ELSE NULL
+            END
+        SQL;
+
+        // KPI counts (based on derived days)
         $critical = MedicationCourse::whereRaw("($daysExpr) <= 2")->count();
         $low      = MedicationCourse::whereRaw("($daysExpr) BETWEEN 3 AND 7")->count();
         $ok       = MedicationCourse::whereRaw("($daysExpr) >= 8")->count();
@@ -68,8 +78,9 @@ class DashboardController extends Controller
         $alerts = MedicationCourse::query()
             ->with(['client.service', 'ackUser', 'snoozeUser'])
             ->select('*')
-            ->addSelect(DB::raw("$daysExpr as days_remaining"))
-            ->addSelect(DB::raw("$unitsExpr as units_remaining"))
+            ->addSelect(DB::raw("($daysExpr)::int as days_remaining"))
+            ->addSelect(DB::raw("($unitsExpr)::int as units_remaining"))
+            ->addSelect(DB::raw("$runoutExpr as computed_runout_date"))
             ->orderBy('client_id')
             ->orderByRaw('days_remaining ASC NULLS LAST')
             ->get()
@@ -81,40 +92,58 @@ class DashboardController extends Controller
                 $service = $client ? $client->service : null;
 
                 $clientName = $client?->name ?? 'Unknown client';
-
                 $serviceName = $service?->name ?? $service?->label ?? 'Unknown service';
+
                 $medicationName = $c->medication_name ?? $c->name ?? null;
+
                 $ackAt = $c->acknowledged_at?->toISOString();
                 $ackByName = $c->ackUser?->name;
 
                 $snoozedUntil = $c->snoozed_until?->toISOString();
                 $snoozedByName = $c->snoozeUser?->name;
 
+                // computed_runout_date comes back as a date string in many cases,
+                // but could be a Carbon/date instance depending on driver/casting.
+                $runout = $c->computed_runout_date;
+                if ($runout instanceof \DateTimeInterface) {
+                    $runout = $runout->format('Y-m-d');
+                } elseif (is_string($runout)) {
+                    // already fine
+                } else {
+                    $runout = null;
+                }
 
                 return [
                     'course_id'      => (int) $c->id,
                     'medication'     => $medicationName,
                     'days_remaining' => $days,
-                    'runout_date'    => optional($c->runout_date)->toDateString(),
+
+                    // Use computed runout date so it always matches units/days
+                    'runout_date'    => $runout,
+
+                    // Keep half_date as stored (if you want, we can compute it too)
                     'half_date'      => optional($c->half_date)->toDateString(),
+
                     'client'         => [
                         'id'       => $client ? (int) $client->id : null,
                         'name'     => $clientName,
-                        'initials' => $client?->initials,                   
+                        'initials' => $client?->initials,
                         'dob'      => optional($client?->dob)->toDateString(),
-                        'gp_email' => $client?->gp_email,      
+                        'gp_email' => $client?->gp_email,
                         'service'  => [
                             'id'   => $service ? (int) $service->id : null,
                             'name' => $serviceName,
                         ],
                     ],
+
                     'ack' => [
                         'acknowledged_at' => $ackAt,
                         'acknowledged_by' => $c->acknowledged_by ? (int) $c->acknowledged_by : null,
                         'acknowledged_by_name' => $ackByName,
                         'note' => $c->ack_note,
-                        ],
-                        'snooze' => [
+                    ],
+
+                    'snooze' => [
                         'snoozed_until' => $snoozedUntil,
                         'snoozed_by' => $c->snoozed_by ? (int) $c->snoozed_by : null,
                         'snoozed_by_name' => $snoozedByName,
@@ -125,7 +154,6 @@ class DashboardController extends Controller
                     'units_remaining' => $units,
                 ];
             });
-
 
         return response()->json([
             'kpis' => [
@@ -144,27 +172,23 @@ class DashboardController extends Controller
     public function emailGp(Request $request)
     {
         $data = $request->validate([
-    'gp_email'     => ['required', 'email'],
-    'client_name'  => ['required', 'string', 'max:255'],
-    'dob'          => ['required', 'string', 'max:50'], 
-    'service_name' => ['nullable', 'string', 'max:255'],
+            'gp_email'     => ['required', 'email'],
+            'client_name'  => ['required', 'string', 'max:255'],
+            'dob'          => ['required', 'string', 'max:50'],
+            'service_name' => ['nullable', 'string', 'max:255'],
 
-    'medications'  => ['required', 'array', 'min:1'],
-    'medications.*.medication'      => ['required', 'string', 'max:255'],
-    'medications.*.status'          => ['nullable', 'string', 'max:50'],
-    'medications.*.units_remaining' => ['nullable'],
-    'medications.*.days_remaining'  => ['nullable'],
-    'medications.*.half_date'       => ['nullable', 'string', 'max:50'],
-    'medications.*.runout_date'     => ['nullable', 'string', 'max:50'],
-]);
-
-
+            'medications'  => ['required', 'array', 'min:1'],
+            'medications.*.medication'      => ['required', 'string', 'max:255'],
+            'medications.*.status'          => ['nullable', 'string', 'max:50'],
+            'medications.*.units_remaining' => ['nullable'],
+            'medications.*.days_remaining'  => ['nullable'],
+            'medications.*.half_date'       => ['nullable', 'string', 'max:50'],
+            'medications.*.runout_date'     => ['nullable', 'string', 'max:50'],
+        ]);
 
         try {
             Mail::to($data['gp_email'])->send(new GpMedicationAlertMail($data));
-
         } catch (\Throwable $e) {
-
             return response()->json([
                 'message' => 'Failed to send GP email',
             ], 500);
@@ -174,7 +198,6 @@ class DashboardController extends Controller
             'message' => 'GP email sent successfully.',
         ]);
     }
-
 
     private function statusFromDays(?int $d): string
     {

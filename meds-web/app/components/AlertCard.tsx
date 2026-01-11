@@ -220,10 +220,6 @@ function isSnoozed(alert: AlertRow, nowMs: number | null) {
                     alert.days_remaining === 1 ? '' : 's'
                   } remaining`;
 
-            const unitsLabel =
-              typeof alert.units_remaining === 'number'
-                ? `${alert.units_remaining} units remaining`
-                : 'Units unknown';
 
             let pillClass = '';
             let pillText = '';
@@ -245,22 +241,27 @@ function isSnoozed(alert: AlertRow, nowMs: number | null) {
                 className="flex items-start justify-between rounded-lg bg-white/60 px-3 py-2 text-xs text-neutral-900"
               >
                 <div className="pr-2">
-                  <p className="font-semibold">{alert.medication}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold">{alert.medication}</p>
+
+                    {typeof alert.units_remaining === 'number' && (
+                      <span className="rounded-full bg-neutral-900/10 px-2 py-0.5 text-[10px] font-semibold text-neutral-800">
+                        {alert.units_remaining} left
+                      </span>
+                    )}
+                  </div>
+
                   <p className="mt-0.5 text-[11px] text-neutral-700">
                     {daysLabel} — runout {formatUK(alert.runout_date) ?? '—'}
                   </p>
+
                   <p className="mt-0.5 text-[11px] text-neutral-600">
                     Half date: {formatUK(alert.half_date) ?? '—'}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-neutral-700">
-                    {daysLabel} — {unitsLabel} — runout {formatUK(alert.runout_date) ?? '—'}
-                  </p>
-
                 </div>
 
-                <div className="flex flex-col items-end gap-1 text-[11px] text-neutral-700">
-                  <span>{unitsLabel}</span>
 
+                <div className="flex flex-col items-end gap-1 text-[11px] text-neutral-700">
                   {pillText && (
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${pillClass}`}>
                       {pillText}
