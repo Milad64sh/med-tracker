@@ -47,7 +47,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   });
 
   const adminNavItems = [
-  { href: '/admin/invites', label: 'Invite Users' },
+  { href: '/owner/invites', label: 'Invite Users' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/restocks', label: 'Restock activity' },
   { href: '/admin/audit', label: 'Audit' },

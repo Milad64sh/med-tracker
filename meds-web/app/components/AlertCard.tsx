@@ -222,7 +222,7 @@ function isSnoozed(alert: AlertRow, nowMs: number | null) {
 
             const unitsLabel =
               typeof alert.units_remaining === 'number'
-                ? `${alert.units_remaining} units`
+                ? `${alert.units_remaining} units remaining`
                 : 'Units unknown';
 
             let pillClass = '';
@@ -252,6 +252,10 @@ function isSnoozed(alert: AlertRow, nowMs: number | null) {
                   <p className="mt-0.5 text-[11px] text-neutral-600">
                     Half date: {formatUK(alert.half_date) ?? '—'}
                   </p>
+                  <p className="mt-0.5 text-[11px] text-neutral-700">
+                    {daysLabel} — {unitsLabel} — runout {formatUK(alert.runout_date) ?? '—'}
+                  </p>
+
                 </div>
 
                 <div className="flex flex-col items-end gap-1 text-[11px] text-neutral-700">

@@ -11,37 +11,38 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'is_admin',
+        'role',      // owner|admin|user
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
+            'is_admin'          => 'boolean',
         ];
+    }
+
+    public function isOwner(): bool
+    {
+        return ($this->role ?? null) === 'owner';
+    }
+
+    public function isAdmin(): bool
+    {
+        // Owner counts as admin power
+        return $this->isOwner()
+            || ($this->role ?? null) === 'admin'
+            || (bool)($this->is_admin ?? false); // legacy support
     }
 }

@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Middleware;
-
 use Closure;
 use Illuminate\Http\Request;
 
@@ -15,7 +14,13 @@ class EnsureUserIsAdmin
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        if (!$user->is_admin) {
+        // owner OR admin OR legacy is_admin
+        $isAllowed =
+            ($user->role ?? null) === 'owner' ||
+            ($user->role ?? null) === 'admin' ||
+            (bool)($user->is_admin ?? false);
+
+        if (!$isAllowed) {
             return response()->json(['message' => 'Forbidden (admin only)'], 403);
         }
 

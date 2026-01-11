@@ -19,18 +19,20 @@ Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
 // Everything below requires a valid Sanctum token
+// Everything below requires a valid Sanctum token
 Route::middleware('auth:sanctum')->group(function () {
 
     // AUTH (private)
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::match(['put', 'patch'], '/auth/me', [AuthController::class, 'update']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
-    // USER
-    Route::get('/users', [UserController::class, 'index']);
+
     // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
     // ALERTS
     Route::post('/alerts/email-gp', [AlertsController::class, 'emailGp']);
+
     // CLIENTS
     Route::get('/clients/lookup', [ClientController::class, 'lookup']);
     Route::get('/clients', [ClientController::class, 'index']);
@@ -50,36 +52,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/services', [ServiceController::class, 'index']);
     Route::get('/services/{service}', [ServiceController::class, 'show']);
 
-    // ADMIN-ONLY
-    Route::middleware('admin')->group(function () {
-        // invites
-        Route::post('/invites', [InviteController::class, 'store']);
-        // services write
-        Route::post('/services', [ServiceController::class, 'store']);
-        Route::match(['put', 'patch'], '/services/{service}', [ServiceController::class, 'update']);
-        Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
-        // destructive
-        Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
-        Route::delete('/courses/{course}', [CourseController::class, 'destroy']);
-        Route::get('/users', [UserController::class, 'index']);
-        Route::get('/restock-logs', [RestockLogController::class, 'index']);
-
-        Route::post('/users', [UserController::class, 'store']);           // optional
-        Route::patch('/users/{user}', [UserController::class, 'update']);
-        Route::delete('/users/{user}', [UserController::class, 'destroy']);
-        Route::patch('/users/{user}/admin', [UserController::class, 'setAdmin']);
-
-        // AUDIT
-        Route::get('/audit-logs', [AuditLogController::class, 'index']);
-
-        //PDF
-        Route::get('/audit-logs/{auditLog}/pdf', [AuditLogController::class, 'pdf']);
-
-    });
-
     // ALERT WORKFLOW
     Route::post('/alerts/{course}/acknowledge', [AlertsController::class, 'acknowledge']);
     Route::post('/alerts/{course}/snooze', [AlertsController::class, 'snooze']);
     Route::post('/alerts/{course}/unsnooze', [AlertsController::class, 'unsnooze']);
 
+    // ADMIN
+Route::middleware('admin')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+
+    // Admin can update name/email only (controller restricts)
+    Route::patch('/users/{user}', [UserController::class, 'update']);
+
+    Route::middleware('owner')->group(function () {
+        Route::post('/invites', [InviteController::class, 'store']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
+        Route::patch('/users/{user}/admin', [UserController::class, 'setAdmin']);
+    });
 });
+
+});
+
