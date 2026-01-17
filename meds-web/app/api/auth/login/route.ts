@@ -63,11 +63,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ user: (data as any)?.user ?? null }, { status: 200 });
   } catch (err: any) {
-    console.error("Login route crashed:", err?.message || err, err?.stack);
-    return NextResponse.json(
-      { message: "Login route crashed", error: String(err?.message || err) },
-      { status: 500 }
-    );
+  console.error("Login route crashed:", err?.message || err, err?.stack);
+  return NextResponse.json(
+    {
+      message: "Login route crashed",
+      error: String(err?.message || err),
+    },
+    { status: 500 }
+  );
   }
 }
 
