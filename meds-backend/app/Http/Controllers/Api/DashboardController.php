@@ -149,6 +149,15 @@ class DashboardController extends Controller
                         'snoozed_by_name' => $snoozedByName,
                         'note' => $c->snooze_note,
                     ],
+                    'debug' => [
+                        'start_date' => optional($c->start_date)->toDateString(),
+                        'daily_use'  => $c->daily_use,
+                        'packs_on_hand' => $c->packs_on_hand,
+                        'pack_size' => $c->pack_size,
+                        'loose_units' => $c->loose_units,
+                        'opening_units' => $c->opening_units,
+                        ],
+
 
                     'status'          => $this->statusFromDays($days),
                     'units_remaining' => $units,

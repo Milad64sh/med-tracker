@@ -38,12 +38,6 @@ class MedicationCourse extends Model
         return $this->belongsTo(Client::class); 
     }
 
-    public function medication()
-    {
-        return $this->belongsTo(MedicationCourse::class);
-    }
-
-    // app/Models/MedicationCourse.php
     public function schedules()
      {
         return $this->hasMany(Schedule::class, 'course_id');

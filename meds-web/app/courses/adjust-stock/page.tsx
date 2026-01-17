@@ -1,5 +1,6 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppShell } from '@/app/components/AppShell';
@@ -13,13 +14,20 @@ type CourseWithRelations = MedicationCourse & {
   client?: Client | null;
 };
 
-export default function RestockPage() {
+export default function AdjustStockPage() {
   const queryClient = useQueryClient();
+  const { showAlert } = useAlert();
+
   const [courses, setCourses] = useState<CourseWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
 
-  const [restockDate, setRestockDate] = useState(() => {
+  // filters / selection
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [showForm, setShowForm] = useState(false);
+
+  // form fields
+  const [adjustmentDate, setAdjustmentDate] = useState(() => {
     const d = new Date();
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -27,34 +35,26 @@ export default function RestockPage() {
     return `${yyyy}-${mm}-${dd}`;
   });
 
-  const { showAlert } = useAlert();
+  // absolute adjustment inputs (either total OR packs+loose)
+  const [totalUnits, setTotalUnits] = useState('');
+  const [packsOnHand, setPacksOnHand] = useState('');
+  const [looseUnits, setLooseUnits] = useState('');
 
-  // ID of the currently selected course
-  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
-
-  // Show/hide the restock form
-  const [showForm, setShowForm] = useState(false);
-
-  // Restock form fields (ADD-only)
-  const [addPacks, setAddPacks] = useState('');
-  const [addLooseUnits, setAddLooseUnits] = useState('');
-  const [note, setNote] = useState('');
+  const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Helper: parse numeric input, return undefined if empty
   const parseNumberOrUndefined = (val: string): number | undefined =>
     val.trim() === '' ? undefined : Number(val);
 
-  // 1) Load courses from backend
+  // 1) Load courses from backend (same approach as RestockPage)
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         const res = await fetcher<any>('/api/courses');
-        console.log('RESTOCK /api/courses response:', JSON.stringify(res, null, 2));
 
         let rows: CourseWithRelations[] = [];
-
         if (Array.isArray(res)) {
           rows = res;
         } else if (Array.isArray(res.data)) {
@@ -66,13 +66,11 @@ export default function RestockPage() {
         setCourses(rows);
       } catch (e: any) {
         console.warn('Failed to load courses', e?.message);
-        if (typeof window !== 'undefined') {
-          showAlert({
-            title: 'Failed to load medication',
-            message: e?.message || 'Something went wrong. Please try again.',
-            variant: 'error',
-          });
-        }
+        showAlert({
+          title: 'Failed to load medication',
+          message: e?.message || 'Something went wrong. Please try again.',
+          variant: 'error',
+        });
         setCourses([]);
       } finally {
         setLoading(false);
@@ -80,7 +78,7 @@ export default function RestockPage() {
     })();
   }, [showAlert]);
 
-  // Build unique client list from courses
+  // Build unique client list from courses (same as RestockPage)
   const clientOptions = useMemo(() => {
     const map = new Map<string, { id: string; label: string }>();
 
@@ -91,7 +89,6 @@ export default function RestockPage() {
       const id = String(client.id);
       const labelParts = [client.initials || `Client #${id}`];
 
-      // include service name if present
       const serviceName = (client as any)?.service?.name;
       if (serviceName) labelParts.push(serviceName);
 
@@ -101,13 +98,13 @@ export default function RestockPage() {
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
   }, [courses]);
 
-  // Filter courses by selected client (if any)
+  // Filter courses by selected client
   const filteredCourses = useMemo(() => {
     if (!selectedClientId) return courses;
     return courses.filter((c) => String(c.client?.id ?? '') === selectedClientId);
   }, [courses, selectedClientId]);
 
-  // 2) The selected course object
+  // Selected course object
   const selectedCourse = useMemo(() => {
     if (!selectedId) return null;
     return filteredCourses.find((c) => String(c.id) === selectedId) ?? null;
@@ -116,145 +113,150 @@ export default function RestockPage() {
   const handleSelectClient = (clientId: string) => {
     setSelectedClientId(clientId);
 
-    // reset medication selection + form when client changes
+    // reset selection + form when client changes
     setSelectedId(undefined);
     setShowForm(false);
 
-    // reset form fields
-    setAddPacks('');
-    setAddLooseUnits('');
-    setNote('');
+    // reset fields
+    setTotalUnits('');
+    setPacksOnHand('');
+    setLooseUnits('');
+    setReason('');
 
     // reset date to today
     const d = new Date();
-    setRestockDate(
+    setAdjustmentDate(
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
         d.getDate()
       ).padStart(2, '0')}`
     );
   };
 
-  // 3) When user selects a course from dropdown
   const handleSelectCourse = (value?: string) => {
     setSelectedId(value);
     setShowForm(false);
 
-    // reset date to today
     const d = new Date();
-    setRestockDate(
+    setAdjustmentDate(
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
         d.getDate()
       ).padStart(2, '0')}`
     );
 
-    // reset add-only fields
-    setAddPacks('');
-    setAddLooseUnits('');
-    setNote('');
+    // prefill form with current values (nice UX)
+    const course = filteredCourses.find((c) => String(c.id) === value);
+    if (!course) return;
+
+    setTotalUnits('');
+    setPacksOnHand(course.packs_on_hand != null ? String(course.packs_on_hand) : '0');
+    setLooseUnits(course.loose_units != null ? String(course.loose_units) : '0');
+    setReason('');
   };
 
-  // 4) Handle restock save (ADD-only)
-  const handleSaveRestock = async () => {
+  const options = filteredCourses.map((c) => ({
+    label: c.name ?? `Course #${c.id}`,
+    value: String(c.id),
+  }));
+
+  const validateNonNegativeNumberStrings = (vals: string[]) => {
+    for (const v of vals) {
+      if (v.trim() === '') continue;
+      const num = Number(v);
+      if (Number.isNaN(num) || num < 0) return false;
+    }
+    return true;
+  };
+
+  const handleSaveAdjustment = async () => {
     if (!selectedCourse) return;
 
-    const id = selectedCourse.id;
-
-    const invalid = [addPacks, addLooseUnits].some((val) => {
-      if (val.trim() === '') return false;
-      const num = Number(val);
-      return Number.isNaN(num) || num < 0;
-    });
-
-    if (invalid) {
-      if (typeof window !== 'undefined') {
-        showAlert({
-          title: 'Number required',
-          message: 'Please enter only non-negative numbers.',
-          variant: 'warning',
-        });
-      }
-      return;
-    }
-
-    const packs = Number(addPacks || 0);
-    const loose = Number(addLooseUnits || 0);
-
-    if (packs <= 0 && loose <= 0) {
+    if (!reason.trim()) {
       showAlert({
-        title: 'Nothing to restock',
-        message: 'Enter packs or loose units to add.',
+        title: 'Reason required',
+        message: 'Please add a reason (e.g. stocktake correction, returned from holiday).',
         variant: 'warning',
       });
       return;
     }
 
-    const payload = {
-      add_packs: parseNumberOrUndefined(addPacks) ?? 0,
-      add_loose_units: parseNumberOrUndefined(addLooseUnits) ?? 0,
-      restock_date: restockDate || null,
-      note: note.trim() || null,
+    // Validate numeric inputs
+    const okNumbers = validateNonNegativeNumberStrings([totalUnits, packsOnHand, looseUnits]);
+    if (!okNumbers) {
+      showAlert({
+        title: 'Number required',
+        message: 'Please enter only non-negative numbers.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    // Must provide either total_units OR (packs/loose)
+    const hasTotal = totalUnits.trim() !== '';
+    const hasParts = packsOnHand.trim() !== '' || looseUnits.trim() !== '';
+
+    if (!hasTotal && !hasParts) {
+      showAlert({
+        title: 'Stock value required',
+        message: 'Enter either Total units OR Packs/Loose units.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const payload: any = {
+      reason: reason.trim(),
+      adjustment_date: adjustmentDate || null,
     };
+
+    if (hasTotal) {
+      payload.total_units = parseNumberOrUndefined(totalUnits);
+    } else {
+      payload.packs_on_hand = parseNumberOrUndefined(packsOnHand) ?? 0;
+      payload.loose_units = parseNumberOrUndefined(looseUnits) ?? 0;
+    }
 
     try {
       setSaving(true);
 
-      const updated = await fetcher<any>(`/api/courses/${id}/restock`, {
+      await fetcher(`/api/courses/${selectedCourse.id}/adjust-stock`, {
         method: 'PATCH',
         body: payload,
       });
 
-      if (typeof window !== 'undefined') {
-        showAlert({
-          title: 'Medication Restocked',
-          message: 'Medication stock updated successfully.',
-          variant: 'success',
-        });
-      }
+      showAlert({
+        title: 'Stock adjusted',
+        message: 'Medication stock was updated to match the real count.',
+        variant: 'success',
+      });
 
+      // refresh dashboard + courses
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       await queryClient.invalidateQueries({ queryKey: ['courses'] });
 
-      // update local list from response (safe)
-      const updatedCourse = updated?.data ?? updated;
-      if (updatedCourse?.id) {
-        setCourses((prev) =>
-          prev.map((c) => (c.id === updatedCourse.id ? ({ ...c, ...updatedCourse } as CourseWithRelations) : c))
-        );
-      } else {
-        // fallback: re-fetch
-        try {
-          const res = await fetcher<any>('/api/courses');
-          let rows: CourseWithRelations[] = [];
-          if (Array.isArray(res)) rows = res;
-          else if (Array.isArray(res.data)) rows = res.data;
-          else if (Array.isArray(res.data?.data)) rows = res.data.data;
-          setCourses(rows);
-        } catch {
-          // ignore
-        }
+      // refresh local courses list (re-fetch to stay accurate)
+      try {
+        const res = await fetcher<any>('/api/courses');
+        let rows: CourseWithRelations[] = [];
+        if (Array.isArray(res)) rows = res;
+        else if (Array.isArray(res.data)) rows = res.data;
+        else if (Array.isArray(res.data?.data)) rows = res.data.data;
+        setCourses(rows);
+      } catch {
+        // ignore — not critical
       }
 
-      // close the restock panel
       setShowForm(false);
     } catch (e: any) {
-      console.warn('Failed to restock', e?.message);
-      if (typeof window !== 'undefined') {
-        showAlert({
-          title: 'Failed to restock',
-          message: e?.message || 'Failed to restock medication.',
-          variant: 'error',
-        });
-      }
+      console.warn('Failed to adjust stock', e?.message);
+      showAlert({
+        title: 'Failed to adjust stock',
+        message: e?.message || 'Failed to update medication stock.',
+        variant: 'error',
+      });
     } finally {
       setSaving(false);
     }
   };
-
-  // Options for select dropdown
-  const options = filteredCourses.map((c) => ({
-    label: c.name ?? `Course #${c.id}`,
-    value: String(c.id),
-  }));
 
   if (loading) {
     return (
@@ -270,7 +272,10 @@ export default function RestockPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-3xl px-2 py-4 sm:px-4 md:px-0">
-        <h1 className="mb-4 text-2xl font-bold text-neutral-900">Restock Medication</h1>
+        <h1 className="mb-1 text-2xl font-bold text-neutral-900">Adjust Stock</h1>
+        <p className="mb-4 text-sm text-neutral-600">
+          Use this when the cupboard count doesn’t match the system (stocktake / correction).
+        </p>
 
         <BackButton className="mb-4" />
 
@@ -283,14 +288,18 @@ export default function RestockPage() {
             onChange={(e) => handleSelectClient(e.target.value)}
             disabled={clientOptions.length === 0}
           >
-            <option value="">{clientOptions.length === 0 ? 'No clients found' : 'All clients'}</option>
+            <option value="">
+              {clientOptions.length === 0 ? 'No clients found' : 'All clients'}
+            </option>
             {clientOptions.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-neutral-500">Select a client to filter the medication list.</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Select a client to filter the medication list.
+          </p>
         </div>
 
         {/* Medication select dropdown */}
@@ -328,7 +337,9 @@ export default function RestockPage() {
                 {selectedCourse.client && (
                   <p className="mt-1 text-xs text-neutral-600">
                     {selectedCourse.client.initials}
-                    {selectedCourse.client.service?.name ? ` • ${selectedCourse.client.service.name}` : ''}
+                    {selectedCourse.client.service?.name
+                      ? ` • ${selectedCourse.client.service.name}`
+                      : ''}
                   </p>
                 )}
               </div>
@@ -337,7 +348,7 @@ export default function RestockPage() {
                 onClick={() => setShowForm((prev) => !prev)}
                 className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100 cursor-pointer"
               >
-                {showForm ? 'Hide restock' : 'Restock'}
+                {showForm ? 'Hide adjustment' : 'Adjust'}
               </button>
             </div>
 
@@ -361,82 +372,101 @@ export default function RestockPage() {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-neutral-600">Select a medication above to view details and restock.</p>
+          <p className="text-sm text-neutral-600">
+            Select a medication above to view details and adjust stock.
+          </p>
         )}
 
-        {/* Restock form, only visible when user clicked "Restock" */}
+        {/* Adjust form */}
         {selectedCourse && showForm && (
           <div className="mt-2 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
             <p className="mb-3 text-base font-semibold text-neutral-900">
-              Add stock for {selectedCourse.name ?? `Course #${selectedCourse.id}`}
+              Adjust stock for {selectedCourse.name ?? `Course #${selectedCourse.id}`}
             </p>
 
+            {/* Reason */}
+            <div className="mb-3">
+              <label className="mb-1 block text-sm text-neutral-700">Reason (required)</label>
+              <input
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Stocktake correction / returned from holiday / spillage"
+              />
+            </div>
+
+            {/* Method note */}
             <div className="mb-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-              <p className="text-sm font-semibold text-neutral-900">Restock adds stock only</p>
+              <p className="text-sm font-semibold text-neutral-900">Choose one method</p>
               <p className="mt-1 text-xs text-neutral-600">
-                Pack size is <span className="font-medium">{selectedCourse.pack_size ?? '—'}</span> (read-only). Enter
-                how many packs/loose units were delivered.
+                Enter <span className="font-medium">Total units</span> OR enter{' '}
+                <span className="font-medium">Packs + Loose units</span>. If Total units is filled, it will be used.
               </p>
             </div>
 
-            {/* Add packs */}
+            {/* Total units */}
             <div className="mb-3">
-              <label className="mb-1 block text-sm text-neutral-700">Add packs</label>
+              <label className="mb-1 block text-sm text-neutral-700">Total units (optional)</label>
               <input
                 className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
                 inputMode="numeric"
-                value={addPacks}
-                onChange={(e) => setAddPacks(e.target.value)}
-                placeholder="e.g. 2"
+                value={totalUnits}
+                onChange={(e) => setTotalUnits(e.target.value)}
+                placeholder="e.g. 14"
               />
+              <p className="mt-1 text-xs text-neutral-500">
+                If you fill this, Packs/Loose below will be ignored.
+              </p>
             </div>
 
-            {/* Add loose units */}
-            <div className="mb-3">
-              <label className="mb-1 block text-sm text-neutral-700">Add loose units</label>
-              <input
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
-                inputMode="numeric"
-                value={addLooseUnits}
-                onChange={(e) => setAddLooseUnits(e.target.value)}
-                placeholder="e.g. 4"
-              />
+            {/* Packs + loose */}
+            <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm text-neutral-700">Packs on hand</label>
+                <input
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
+                  inputMode="numeric"
+                  value={packsOnHand}
+                  onChange={(e) => setPacksOnHand(e.target.value)}
+                  placeholder="e.g. 0"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-neutral-700">Loose units</label>
+                <input
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
+                  inputMode="numeric"
+                  value={looseUnits}
+                  onChange={(e) => setLooseUnits(e.target.value)}
+                  placeholder="e.g. 14"
+                />
+              </div>
             </div>
 
-            {/* Note (optional) */}
+            {/* Adjustment date */}
             <div className="mb-4">
-              <label className="mb-1 block text-sm text-neutral-700">Note (optional)</label>
-              <input
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. Delivered by pharmacy / emergency supply"
-              />
-            </div>
-
-            {/* Restock date */}
-            <div className="mb-3">
-              <label className="mb-1 block text-sm text-neutral-700">Restock date</label>
+              <label className="mb-1 block text-sm text-neutral-700">Adjustment date</label>
               <input
                 type="date"
                 className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-400"
-                value={restockDate}
-                onChange={(e) => setRestockDate(e.target.value)}
+                value={adjustmentDate}
+                onChange={(e) => setAdjustmentDate(e.target.value)}
               />
               <p className="mt-1 text-xs text-neutral-500">
-                Used to recalculate half-date and runout date from this day.
+                Used as the new baseline date for recalculating runout/half dates.
               </p>
             </div>
 
             <button
               type="button"
               disabled={saving}
-              onClick={handleSaveRestock}
+              onClick={handleSaveAdjustment}
               className={`flex w-full items-center justify-center rounded-xl py-2.5 text-sm font-semibold text-white cursor-pointer ${
-                saving ? 'bg-neutral-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
+                saving ? 'bg-neutral-300 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-700'
               }`}
             >
-              {saving ? 'Saving…' : 'Save restock'}
+              {saving ? 'Saving…' : 'Save adjustment'}
             </button>
           </div>
         )}

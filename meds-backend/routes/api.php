@@ -19,7 +19,6 @@ Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 
 // Everything below requires a valid Sanctum token
-// Everything below requires a valid Sanctum token
 Route::middleware('auth:sanctum')->group(function () {
 
     // AUTH (private)
@@ -46,6 +45,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/courses/{course}', [CourseController::class, 'show']);
     Route::match(['put', 'patch'], '/courses/{course}', [CourseController::class, 'update']);
     Route::patch('/courses/{course}/restock', [CourseController::class, 'restock']);
+    Route::patch('/courses/{course}/adjust-stock', [CourseController::class, 'adjustStock']);
+
 
     // SERVICES (read-only)
     Route::get('/services/lookup', [ServiceController::class, 'lookup']);

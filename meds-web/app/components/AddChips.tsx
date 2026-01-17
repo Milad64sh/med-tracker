@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 
-type ChipColor = 'emerald' | 'sky' | 'violet';
+type ChipColor = 'emerald' | 'sky' | 'violet' | 'amber';
 
 type AddItem = {
   key: string;
@@ -37,6 +37,11 @@ const palette: Record<
     border: 'border-violet-400',
     bg: 'bg-violet-50',
     text: 'text-violet-700',
+  },
+    amber: {
+    border: 'border-amber-400',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
   },
 };
 

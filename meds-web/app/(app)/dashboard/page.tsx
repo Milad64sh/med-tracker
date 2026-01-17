@@ -190,10 +190,16 @@ const handleUnsnooze = async (courseId: number) => {
               <AddChips
                 items={[
                   {
-                    key: 'add-med',
+                    key: 'restock-med',
                     label: '➕ Restock Medication',
                     href: '/courses/restock',
                     color: 'emerald',
+                  },
+                    {
+                    key: 'adjust-stock',
+                    label: '🔧 Adjust Stock',
+                    href: '/courses/adjust-stock',
+                    color: 'amber',
                   },
                   {
                     key: 'add-client',
