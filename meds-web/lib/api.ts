@@ -6,7 +6,11 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export const API_BASE_URL = '';
+const isServer = typeof window === 'undefined';
+
+export const API_BASE_URL = isServer
+  ? (process.env.BACKEND_API_BASE_URL || '')
+  : (process.env.NEXT_PUBLIC_API_BASE_URL || '');
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 type FetcherOpts = { method?: HttpMethod; body?: any; headers?: Record<string, string> };
@@ -30,7 +34,7 @@ export async function fetcher<T = any>(path: string, opts: FetcherOpts = {}): Pr
   try {
     res = await fetch(url, {
       method: opts.method ?? 'GET',
-      credentials: 'same-origin', // ✅ important for HttpOnly cookie auth
+      credentials: 'include', // important for HttpOnly cookie auth
       headers: {
         Accept: 'application/json',
         ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
