@@ -21,7 +21,10 @@ export async function GET(req: Request) {
   });
 
   const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  return NextResponse.json(data, {
+  status: res.status,
+  headers: { "x-hit": "services-get" },
+});
 }
 
 export async function POST(req: Request) {
@@ -43,5 +46,8 @@ export async function POST(req: Request) {
   });
 
   const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  return NextResponse.json(data, {
+  status: res.status,
+  headers: { "x-hit": "services-post" },
+});
 }

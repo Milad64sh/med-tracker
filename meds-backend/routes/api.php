@@ -64,6 +64,11 @@ Route::middleware('admin')->group(function () {
 
     // Admin can update name/email only (controller restricts)
     Route::patch('/users/{user}', [UserController::class, 'update']);
+    // SERVICES (admin)
+    Route::post('/services', [ServiceController::class, 'store']);
+    Route::match(['put','patch'], '/services/{service}', [ServiceController::class, 'update']);
+    Route::delete('/services/{service}', [ServiceController::class, 'destroy']);
+
 
     Route::middleware('owner')->group(function () {
         Route::post('/invites', [InviteController::class, 'store']);
