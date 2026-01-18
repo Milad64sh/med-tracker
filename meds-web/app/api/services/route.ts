@@ -1,43 +1,15 @@
-import { NextResponse } from 'next/server';
-import { backendUrl, getTokenFromCookie } from '@/app/api/_utils/backend';
+import { NextResponse } from "next/server";
 
-export async function GET(req: Request) {
-  const token = await getTokenFromCookie();
-  if (!token) {
-    return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
-  }
-
-  const { search } = new URL(req.url);
-
-  const res = await fetch(backendUrl(`/api/services${search}`), {
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+export async function GET() {
+  return NextResponse.json(
+    { ok: true, where: "services-route.ts", version: "v-2026-01-18" },
+    { headers: { "x-route-fingerprint": "services-get-v-2026-01-18" } }
+  );
 }
 
-export async function POST(req: Request) {
-  const token = await getTokenFromCookie();
-  if (!token) {
-    return NextResponse.json({ message: 'Unauthenticated' }, { status: 401 });
-  }
-
-  const body = await req.json();
-
-  const res = await fetch(backendUrl('/api/services'), {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+export async function POST() {
+  return NextResponse.json(
+    { ok: true, where: "services-route.ts", post: true, version: "v-2026-01-18" },
+    { headers: { "x-route-fingerprint": "services-post-v-2026-01-18" } }
+  );
 }
