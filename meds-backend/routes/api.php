@@ -60,7 +60,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ADMIN
 Route::middleware('admin')->group(function () {
+
     Route::get('/users', [UserController::class, 'index']);
+    // Restock logs
+    Route::get('/restock-logs', [RestockLogController::class, 'index']);
+    // Audit logs (admin-only)
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
+    Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show']);
 
     // Admin can update name/email only (controller restricts)
     Route::patch('/users/{user}', [UserController::class, 'update']);
