@@ -20,9 +20,9 @@ const schema = z.object({
   admins_per_day: z.coerce.number().min(0.001, 'Admins per day required'),
   daily_use: z.coerce.number().min(0.001, 'Daily use required'),
   pack_size: z.coerce.number().min(1, 'Pack size must be at least 1'),
-  packs_on_hand: z.coerce.number().min(0),
-  loose_units: z.coerce.number().optional(),
-  opening_units: z.coerce.number().min(0, 'Opening units required'),
+  // packs_on_hand: z.coerce.number().min(0),
+  // loose_units: z.coerce.number().optional(),
+  // opening_units: z.coerce.number().min(0, 'Opening units required'),
   start_date: z.string().min(1, 'Start date required'), // "YYYY-MM-DD"
 });
 
@@ -38,9 +38,9 @@ type CourseApi = {
   admins_per_day?: number | null;
   daily_use?: number | null;
   pack_size?: number | null;
-  packs_on_hand?: number | null;
-  loose_units?: number | null;
-  opening_units?: number | null;
+  // packs_on_hand?: number | null;
+  // loose_units?: number | null;
+  // opening_units?: number | null;
   start_date?: string | null;
 };
 
@@ -79,9 +79,9 @@ const {
     admins_per_day: undefined,
     daily_use: undefined,
     pack_size: undefined,
-    packs_on_hand: undefined,
-    loose_units: undefined,
-    opening_units: undefined,
+    // packs_on_hand: undefined,
+    // loose_units: undefined,
+    // opening_units: undefined,
     start_date: '',
   },
 });
@@ -125,18 +125,18 @@ const {
             c.pack_size !== null && c.pack_size !== undefined
               ? Number(c.pack_size)
               : (undefined as any),
-          packs_on_hand:
-            c.packs_on_hand !== null && c.packs_on_hand !== undefined
-              ? Number(c.packs_on_hand)
-              : (undefined as any),
-          loose_units:
-            c.loose_units !== null && c.loose_units !== undefined
-              ? Number(c.loose_units)
-              : (undefined as any),
-          opening_units:
-            c.opening_units !== null && c.opening_units !== undefined
-              ? Number(c.opening_units)
-              : (undefined as any),
+          // packs_on_hand:
+          //   c.packs_on_hand !== null && c.packs_on_hand !== undefined
+          //     ? Number(c.packs_on_hand)
+          //     : (undefined as any),
+          // loose_units:
+          //   c.loose_units !== null && c.loose_units !== undefined
+          //     ? Number(c.loose_units)
+          //     : (undefined as any),
+          // opening_units:
+          //   c.opening_units !== null && c.opening_units !== undefined
+          //     ? Number(c.opening_units)
+          //     : (undefined as any),
           start_date: c.start_date ?? '',
         });
 
@@ -392,7 +392,7 @@ const {
           <Input name="admins_per_day" label="Admins per Day" type="number" />
           <Input name="daily_use" label="Daily Use" type="number" />
           <Input name="pack_size" label="Pack Size" type="number" />
-          <Input
+          {/* <Input
             name="packs_on_hand"
             label="Packs on Hand"
             type="number"
@@ -402,7 +402,7 @@ const {
             name="opening_units"
             label="Opening Units"
             type="number"
-          />
+          /> */}
 
           {/* Start date (simple date input instead of MedicationDateField) */}
           <Controller
