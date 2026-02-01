@@ -3,11 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
-
-
 import type { Client } from '@/app/features/dashboard/types';
 import type { MedicationCourse } from '@/app/features/courses/types';
 import { useAlert } from '@/app/AlertProvider';
+import { useAuth } from '@/app/hooks/useAuth';
+
 
 type CourseWithRelations = MedicationCourse & {
   client?: Client | null;
@@ -16,7 +16,6 @@ type CourseWithRelations = MedicationCourse & {
 type MedicationCardProps = {
   item: CourseWithRelations;
   onDelete: (id: number) => void;
-
   // optional props
   disableDelete?: boolean;
   showRestockButton?: boolean;
@@ -31,6 +30,7 @@ export function MedicationCard({
   onRestockPress,
 }: MedicationCardProps) {
   const editHref = `/meds/${item.id}/edit`;
+    const { isAdmin } = useAuth();
   const {showAlert} = useAlert();
 
   const clientInitials = item.client?.initials ?? '—';
@@ -94,9 +94,9 @@ export function MedicationCard({
           </span>
         </p>
       </div>
-
-      {/* Actions */}
-      <div className="flex flex-wrap gap-3">
+            {/* Actions */}
+      {isAdmin &&
+            <div className="flex flex-wrap gap-3">
         {/* Edit */}
         <Link href={editHref} aria-label={`Edit ${item.name ?? 'medication'}`}>
           <button
@@ -130,6 +130,8 @@ export function MedicationCard({
           </button>
         )}
       </div>
+      }
+
     </div>
   );
 }

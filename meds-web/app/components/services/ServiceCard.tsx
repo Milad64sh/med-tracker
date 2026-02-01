@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
+
 import Link from 'next/link';
 import { useAlert } from '@/app/AlertProvider';
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '@/app/hooks/useAuth';
 
 type ServiceCardProps = {
   item: {
@@ -15,8 +17,10 @@ type ServiceCardProps = {
   onPress?: () => void; // open modal
 };
 
+
 export function ServiceCard({ item, onDelete, onPress }: ServiceCardProps) {
   const editHref = `/services/${item.id}/edit`;
+  const {isAdmin} = useAuth();
   const {showAlert} = useAlert();
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -54,7 +58,9 @@ export function ServiceCard({ item, onDelete, onPress }: ServiceCardProps) {
         </span>
       </p>
 
-      <div className="flex flex-row gap-3">
+      {/* Actions */}
+      {isAdmin &&
+            <div className="flex flex-row gap-3">
         {/* EDIT */}
         <Link href={editHref} onClick={(e) => e.stopPropagation()}>
             <button
@@ -75,6 +81,8 @@ export function ServiceCard({ item, onDelete, onPress }: ServiceCardProps) {
                       <TrashIcon className="h-5 w-5" />
                     </button>
       </div>
+      }
+
     </div>
   );
 }

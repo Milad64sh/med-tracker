@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useDashboard } from '@/app/features/dashboard/queries';
 import { KpiTile } from '@/app/components/KpiTile';
 import { StatusChips } from '@/app/components/StatusChips';
@@ -13,6 +14,14 @@ import { AppShell } from '@/app/components/AppShell';
 import { fetcher } from '@/lib/api';
 
 type StatusFilter = 'all' | 'critical' | 'low' | 'ok';
+
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  created_at?: string | null;
+  is_admin?: boolean;
+};
 
 /**
  * Group alerts by client so we show one card per client
@@ -43,6 +52,13 @@ function groupAlertsByClient(alerts: AlertRow[]): ClientAlertGroup[] {
 export default function DashboardPage() {
   const { data, isLoading, isFetching, refetch } = useDashboard();
   const [status, setStatus] = useState<StatusFilter>('all');
+
+    // Load current user for initials
+    const { data: user } = useQuery<User>({
+      queryKey: ['me'],
+      queryFn: () => fetcher<User>('/api/auth/me'),
+      retry: false,
+    });
 
   // 1) Filter by status
   const filteredAlerts = useMemo(() => {
@@ -179,7 +195,8 @@ const handleUnsnooze = async (courseId: number) => {
         </div>
 
         {/* Quick Actions */}
-        <section className="mt-4">
+        {user?.is_admin &&
+                  <section className="mt-4">
           <h2 className="mb-2 text-base font-semibold text-neutral-900 sm:text-lg">
             Quick Actions
           </h2>
@@ -218,6 +235,8 @@ const handleUnsnooze = async (courseId: number) => {
             </div>
           </div>
         </section>
+        }
+
 
         {/* KPIs */}
         <section className="mt-6">
